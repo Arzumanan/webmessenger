@@ -8,3 +8,4 @@ allure-results
 results/
 *.pyc
 __pycache__/
+#1

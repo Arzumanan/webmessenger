@@ -13,3 +13,4 @@ class BaseTest:
         request.cls.browser = browser
         request.cls.base_page = BasePage(browser)
         request.cls.login_manager_page = LoginManagerPage(browser)
+#1

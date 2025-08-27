@@ -47,3 +47,4 @@ class LoginManagerPage(BasePage):
             error_locator = (By.XPATH, f"//*[text() = '{expected_error_message}']")
             self.element_in_visible(error_locator)
             assert self.element_in_visible(error_locator).is_displayed()
+#1

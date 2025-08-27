@@ -1,4 +1,3 @@
-import time
 import allure
 import pytest
 
@@ -34,3 +33,4 @@ class TestManagerLogin(BaseTest):
         self.login_manager_page.enter_password(password)
         self.login_manager_page.manager_authorization()
         self.login_manager_page.check_authorization(expected_result, expected_error_message)
+#1

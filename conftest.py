@@ -25,3 +25,4 @@ def browser(request):
     request.cls.driver = driver
     yield driver  # Выход из фикстуры, передача браузера в тест
     driver.quit()  # Закрытие браузера после завершения теста
+    # 1
