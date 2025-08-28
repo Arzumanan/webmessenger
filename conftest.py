@@ -1,13 +1,7 @@
-from xml.dom.xmlbuilder import Options
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import pickle
-import os
-from config.links import Links
+
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -25,4 +19,3 @@ def browser(request):
     request.cls.driver = driver
     yield driver  # Выход из фикстуры, передача браузера в тест
     driver.quit()  # Закрытие браузера после завершения теста
-    # 1

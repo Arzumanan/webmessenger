@@ -35,5 +35,5 @@ class BasePage:
 
     def find_element(self, locator):
         return self.browser.find_element(locator)
-    # 1
+
 
