@@ -9,6 +9,10 @@ class ManagersPage:
 
     MODAL_FORM = "//form[contains(@class,'add-manager-form')]"
 
+    # Локаторы навигации
+    MANAGERS_SIDEBAR_LINK = (By.ID, "managers")
+    ADD_MANAGER_BUTTON = (By.XPATH, "//button[contains(@class, 'manager-sidebar-add-manager-btn') and contains(text(),'Добавить менеджера')]")
+
     # Локаторы модалки добавления
     NAME_INPUT = (By.XPATH, f"{MODAL_FORM}//input[@id='username']")
     EMAIL_INPUT = (By.XPATH, f"{MODAL_FORM}//input[@id='email']")
@@ -24,6 +28,17 @@ class ManagersPage:
     def __init__(self, driver, wait_timeout: int = 15):
         self.driver = driver
         self.wait = WebDriverWait(driver, wait_timeout)
+
+    def navigate_to_managers_section(self):
+        """Переход в раздел Менеджеры"""
+        managers_link = self.wait.until(EC.element_to_be_clickable(self.MANAGERS_SIDEBAR_LINK))
+        managers_link.click()
+        time.sleep(2)  # Небольшая пауза для загрузки
+
+    def open_add_manager_modal(self):
+        """Открытие модального окна добавления менеджера"""
+        add_button = self.wait.until(EC.element_to_be_clickable(self.ADD_MANAGER_BUTTON))
+        add_button.click()
 
     def wait_modal_opened(self):
         self.wait.until(EC.visibility_of_element_located(self.MODAL_TITLE))
@@ -149,5 +164,18 @@ class ManagersPage:
         self.click_delete_in_form()
         self.confirm_delete_modal()
         self.wait_removed_from_list(email)
+
+    def create_new_manager(self, name: str, email: str, password: str):
+        """Полный процесс создания нового менеджера"""
+        self.navigate_to_managers_section()
+        self.open_add_manager_modal()
+        self.add_manager(name, email, password)
+        
+        # Проверяем, что менеджер появился в списке
+        created_manager = self.wait.until(
+            EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{email}')]"))
+        )
+        self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", created_manager)
+        return email
 
 
