@@ -40,3 +40,53 @@ class LoginAdminPage(BasePage):
             error_locator = (By.XPATH, f"//*[text() = '{expected_error_message}']")
             self.element_in_visible(error_locator)
             assert self.element_in_visible(error_locator).is_displayed()
+
+    @allure.step('Полная авторизация администратора')
+    def login_as_admin(self, email, password):
+        """Полный процесс авторизации администратора"""
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.common.exceptions import TimeoutException
+        import time
+        
+        # Открываем главную страницу
+        self.open_host()
+        assert "Веб-мессенджер" in self.browser.title
+        
+        # Нажимаем кнопку входа (первую кнопку входа на главной)
+        login_button = WebDriverWait(self.browser, 10).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="root"]/div/div/div[2]/div/div[2]/div[1]/button[1]'))
+        )
+        self.browser.execute_script("arguments[0].scrollIntoView(true);", login_button)
+        login_button.click()
+        
+        # Вводим email
+        email_field = self.element_in_clickable(self.EMAIL_INPUT)
+        email_field.clear()
+        email_field.send_keys(email)
+        
+        # Вводим пароль
+        password_field = self.element_in_clickable(self.PASSWORD_INPUT)
+        password_field.clear()
+        password_field.send_keys(password)
+        
+        # Нажимаем кнопку "Войти"
+        submit_button = WebDriverWait(self.browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div/div/div[2]/div/form/div[3]/div/button[2] | //button[contains(.,"Войти")]'))
+        )
+        WebDriverWait(self.browser, 10).until(lambda d: submit_button.get_attribute("disabled") in (None, "false"))
+        password_field.send_keys("\n")
+        
+        try:
+            WebDriverWait(self.browser, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="root"]/div/div/div[2]/div/form/div[3]/div/button[2] | //button[contains(.,"Войти")]'))).click()
+        except Exception:
+            pass
+            
+        # Проверяем успешную авторизацию
+        WebDriverWait(self.browser, 20).until(lambda d: '/login' not in d.current_url)
+        WebDriverWait(self.browser, 20).until(
+            EC.any_of(
+                EC.visibility_of_element_located((By.XPATH, '//*[contains(@class,"navbar") or contains(@class,"messenger")]')),
+                EC.visibility_of_element_located((By.XPATH, '//*[text()="Диалоги" or contains(@class,"navlink-text")]')),
+            )
+        )

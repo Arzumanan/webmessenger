@@ -36,4 +36,32 @@ class BasePage:
     def find_element(self, locator):
         return self.browser.find_element(locator)
 
+    def dismiss_notifications_banner(self):
+        """Закрытие баннера уведомлений если он появился"""
+        import time
+        try:
+            deny = WebDriverWait(self.browser, 5).until(EC.element_to_be_clickable((
+                By.XPATH,
+                '//*[self::button or self::a][contains(., "Не сейчас") or contains(., "Позже") or contains(., "Запретить") or contains(., "Не разрешать") or contains(., "Закрыть")]'
+            )))
+            self.browser.execute_script("arguments[0].scrollIntoView({block:'center'});", deny)
+            time.sleep(0.3)
+            try:
+                deny.click()
+            except Exception:
+                self.browser.execute_script("arguments[0].click();", deny)
+        except Exception:
+            # Альтернатива: закрытие по иконке крестика
+            try:
+                close_btn = WebDriverWait(self.browser, 3).until(EC.element_to_be_clickable((
+                    By.XPATH,
+                    '//*[contains(@class, "close") or contains(@class, "icon-close")][self::button or self::span or self::i]'
+                )))
+                try:
+                    close_btn.click()
+                except Exception:
+                    self.browser.execute_script("arguments[0].click();", close_btn)
+            except Exception:
+                pass
+
 
