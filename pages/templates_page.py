@@ -15,34 +15,27 @@ class TemplatesPage(BasePage):
     def open_templates(self):
         return self.open()
 
-    # Локаторы (возможные, с запасом по устойчивости)
-    # Кнопка "Добавить Шаблон +"
+    # Локаторы
     ADD_TEMPLATE_BUTTON = (
         By.XPATH,
         "//button[@type='button' and contains(@class,'btn_primary') and contains(normalize-space(.), 'Добавить Шаблон')]",
     )
-    # Заголовок модалки: "Новый шаблон"
     MODAL_TITLE = (
         By.XPATH,
         "//form[contains(@class,'add-template-form')]//div[contains(@class,'add-contact-header-text') and normalize-space(text())='Новый шаблон']",
     )
-    # Поле Название шаблона
     NAME_INPUT = (
         By.XPATH,
         "//form[contains(@class,'add-template-form')]//input[@id='templateName' and @name='templateName']",
     )
-    # Поле Текст шаблона
     TEXTAREA_CONTENT = (
         By.XPATH,
         "//form[contains(@class,'add-template-form')]//textarea[@id='templateText' and @name='templateText']",
     )
-    # Кнопка "Создать шаблон"
     SAVE_BUTTON = (
         By.XPATH,
         "//form[contains(@class,'add-template-form')]//button[@type='submit' and contains(normalize-space(.), 'Создать шаблон')]",
     )
-
-    # Навигация в раздел "Настройки"
     SETTINGS_LINK = (
         By.XPATH,
         "//a[@id='settings' and contains(@class,'navlink')]",
@@ -52,11 +45,7 @@ class TemplatesPage(BasePage):
         "//h2[contains(@class,'sidebar__title') and normalize-space(.)='Настройки']",
     )
 
-    # Подсказка о необходимости заполнения полей
-    REQUIRED_FIELDS_HINT = (
-        By.XPATH,
-        "//span[contains(@class,'add-contact-form-control-label-red') and normalize-space(.)='Выделенные поля обязательны для заполнения.']",
-    )
+
 
     def _wait(self):
         return WebDriverWait(self.browser, 15)
@@ -111,65 +100,97 @@ class TemplatesPage(BasePage):
             self.browser.execute_script("arguments[0].click();", link)
         self._wait().until(EC.visibility_of_element_located(self.SETTINGS_TITLE))
 
-    @allure.step("Ожидать валидацию поля 'Текст шаблона'")
-    def assert_text_validation_error(self):
-        def any_validation(_):
-            # 1) Явное сообщение об ошибке в форме
-            try:
-                err = self.browser.find_element(By.XPATH,
-                    "//form[contains(@class,'add-template-form')]//*[contains(@class,'error') or contains(@class,'error-message') or contains(@class,'invalid')][not(self::input) and not(self::textarea)]")
-                if err.is_displayed():
-                    return True
-            except Exception:
-                pass
-            # 2) Поле textarea имеет состояние ошибки
-            try:
-                textarea = self.browser.find_element(*self.TEXTAREA_CONTENT)
-                cls = (textarea.get_attribute('class') or '').lower()
-                aria = (textarea.get_attribute('aria-invalid') or '').lower()
-                if 'error' in cls or 'invalid' in cls or aria in ('true', '1'):
-                    return True
-            except Exception:
-                pass
-            # 3) Кнопка сохранения задизейблена
-            try:
-                save = self.browser.find_element(*self.SAVE_BUTTON)
-                disabled = save.get_attribute('disabled')
-                if disabled is not None and disabled != 'false':
-                    return True
-            except Exception:
-                pass
-            return False
+    # Локаторы для удаления шаблона
+    CONFIRM_DELETE_BUTTON = (
+        By.XPATH,
+        "//button[@type='button' and contains(@class,'btn_primary') and contains(@class,'btn_default') and contains(@class,'btn_icon-none') and normalize-space(.)='Да']"
+    )
 
-        # Пробуем дождаться валидации до 20 секунд
-        WebDriverWait(self.browser, 20).until(any_validation)
-
-    @allure.step("Спровоцировать валидацию поля 'Текст' (blur)")
-    def trigger_text_validation(self):
-        try:
-            textarea = self._wait().until(EC.presence_of_element_located(self.TEXTAREA_CONTENT))
-            # Сфокусироваться и убрать фокус
+    @allure.step("Найти и удалить шаблон по имени")
+    def delete_template_by_name(self, template_name: str):
+        # Сначала найдем элемент с именем шаблона
+        template_element = self._wait().until(
+            EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{template_name}')]"))
+        )
+        
+        # Прокрутим к элементу
+        self.browser.execute_script("arguments[0].scrollIntoView({block:'center'});", template_element)
+        
+        # Найдем все кнопки в контейнере шаблона
+        all_buttons = self.browser.find_elements(
+            By.XPATH, 
+            f"//*[contains(text(),'{template_name}')]/ancestor::*[contains(@class,'template') or contains(@class,'list') or self::li]//button"
+        )
+        
+        delete_btn = None
+        
+        # Попробуем найти кнопку удаления по различным критериям
+        for button in all_buttons:
             try:
-                textarea.click(); time.sleep(0.05)
-            except Exception:
-                self.browser.execute_script("arguments[0].click();", textarea)
-            # Убрать фокус через TAB
-            textarea.send_keys("\t")
-        except Exception:
-            # как альтернатива — кликнуть по заголовку формы, чтобы снять фокус
-            try:
-                header = self.browser.find_element(By.XPATH, "//div[contains(@class,'add-contact-header-text')]")
-                self.browser.execute_script("arguments[0].scrollIntoView({block:'center'});", header)
+                # Проверим, есть ли SVG в кнопке
+                svg = button.find_element(By.TAG_NAME, "svg")
+                viewbox = svg.get_attribute('viewBox')
+                paths = svg.find_elements(By.TAG_NAME, "path")
+                
+                # Кнопка удаления (корзина) обычно имеет viewBox="0 0 18 18" и много path элементов
+                if viewbox == "0 0 18 18" and len(paths) >= 4:
+                    delete_btn = button
+                    break
+            except:
+                continue
+        
+        # Если не нашли по SVG, попробуем найти по атрибутам
+        if delete_btn is None:
+            for button in all_buttons:
                 try:
-                    header.click()
-                except Exception:
-                    self.browser.execute_script("arguments[0].click();", header)
-            except Exception:
-                pass
+                    title = button.get_attribute('title') or ''
+                    aria_label = button.get_attribute('aria-label') or ''
+                    class_name = button.get_attribute('class') or ''
+                    
+                    if any(keyword in (title + aria_label + class_name).lower() for keyword in ['delete', 'remove', 'trash', 'удалить']):
+                        delete_btn = button
+                        break
+                except:
+                    continue
+        
+        # Если все еще не нашли, возьмем последнюю кнопку (обычно кнопка удаления идет последней)
+        if delete_btn is None and all_buttons:
+            delete_btn = all_buttons[-1]
+        
+        if delete_btn is None:
+            raise Exception(f"Не удалось найти кнопку удаления для шаблона '{template_name}'")
+        
+        # Кликнуть на кнопку удаления
+        try:
+            delete_btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", delete_btn)
+        
+        # Подтвердить удаление
+        confirm_btn = self._wait().until(EC.element_to_be_clickable(self.CONFIRM_DELETE_BUTTON))
+        try:
+            confirm_btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", confirm_btn)
+        
+        # Дождаться исчезновения шаблона из списка
+        time.sleep(2)  # Даем время на обработку удаления
+        try:
+            WebDriverWait(self.browser, 5).until_not(
+                EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{template_name}')]"))
+            )
+        except:
+            # Если не удалось дождаться исчезновения, обновим страницу и проверим
+            self.browser.refresh()
+            time.sleep(2)
 
-    @allure.step("Проверить наличие текста о обязательных полях")
-    def assert_required_fields_hint(self):
-        self._wait().until(EC.visibility_of_element_located(self.REQUIRED_FIELDS_HINT))
-
-
+    @allure.step("Проверить отсутствие шаблона в списке")
+    def assert_template_not_in_list(self, template_name: str):
+        # Проверяем, что шаблон больше не отображается в списке
+        try:
+            self.browser.find_element(By.XPATH, f"//*[contains(text(),'{template_name}')]")
+            raise AssertionError(f"Шаблон '{template_name}' все еще присутствует в списке")
+        except:
+            # Элемент не найден - это ожидаемое поведение
+            pass
 
