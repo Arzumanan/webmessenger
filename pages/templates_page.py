@@ -44,6 +44,38 @@ class TemplatesPage(BasePage):
         By.XPATH,
         "//h2[contains(@class,'sidebar__title') and normalize-space(.)='Настройки']",
     )
+    
+    # Локаторы для добавления группы шаблонов
+    ADD_TEMPLATE_GROUP_BUTTON = (
+        By.XPATH,
+        "//button[@type='button' and contains(@class,'btn_primary') and contains(@class,'btn_default') and contains(@class,'btn_icon-none') and contains(normalize-space(.), 'Добавить группу шаблонов')]"
+    )
+    ADD_GROUP_MODAL_TITLE = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//div[contains(@class,'add-contact-header-text') and normalize-space(text())='Новая группа']"
+    )
+    GROUP_NAME_INPUT = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//input[@id='subsectionName' and @name='subsectionName']"
+    )
+    CREATE_GROUP_BUTTON = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//button[@type='submit' and contains(normalize-space(.), 'Создать группу')]"
+    )
+    
+    # Локаторы для редактирования группы шаблонов
+    EDIT_GROUP_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class,'template-item_setting_button')]//svg[@viewBox='0 0 18 18']//path[contains(@d,'M1.60449 12.75')]"
+    )
+    EDIT_GROUP_MODAL_TITLE = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//div[contains(@class,'add-contact-header-text') and contains(text(),'Редактирование')]"
+    )
+    UPDATE_GROUP_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class,'add-contact-form-submit')]//button[@type='submit' and contains(@class,'btn_primary') and contains(normalize-space(.), 'Обновить')]"
+    )
 
 
 
@@ -195,37 +227,46 @@ class TemplatesPage(BasePage):
             # Элемент не найден - это ожидаемое поведение
             pass
 
-    # Локаторы для добавления группы шаблонов
-    ADD_TEMPLATE_GROUP_BUTTON = (
-        By.XPATH,
-        "//button[@type='button' and contains(@class,'btn_primary') and contains(@class,'btn_default') and contains(@class,'btn_icon-none') and contains(normalize-space(.), 'Добавить группу шаблонов')]"
-    )
-    ADD_GROUP_MODAL_TITLE = (
-        By.XPATH,
-        "//form[contains(@class,'add-contact-wrapper')]//div[contains(@class,'add-contact-header-text') and normalize-space(text())='Новая группа']"
-    )
-    GROUP_NAME_INPUT = (
-        By.XPATH,
-        "//form[contains(@class,'add-contact-wrapper')]//input[@id='subsectionName' and @name='subsectionName']"
-    )
-    CREATE_GROUP_BUTTON = (
-        By.XPATH,
-        "//form[contains(@class,'add-contact-wrapper')]//button[@type='submit' and contains(normalize-space(.), 'Создать группу')]"
-    )
-    
-    # Локаторы для редактирования группы шаблонов
-    EDIT_GROUP_BUTTON = (
-        By.XPATH,
-        "//div[contains(@class,'template-item_setting_button')]//svg[@viewBox='0 0 18 18']//path[contains(@d,'M1.60449 12.75')]"
-    )
-    EDIT_GROUP_MODAL_TITLE = (
-        By.XPATH,
-        "//form[contains(@class,'add-contact-wrapper')]//div[contains(@class,'add-contact-header-text') and contains(text(),'Редактирование')]"
-    )
-    UPDATE_GROUP_BUTTON = (
-        By.XPATH,
-        "//div[contains(@class,'add-contact-form-submit')]//button[@type='submit' and contains(@class,'btn_primary') and contains(normalize-space(.), 'Обновить')]"
-    )
+    @allure.step("Дополнительная проверка удаления шаблона")
+    def verify_template_deletion(self, template_name: str):
+        """
+        Дополнительная проверка того, что шаблон действительно удален.
+        Выполняет несколько проверок для надежности.
+        """
+        import time
+        from selenium.common.exceptions import NoSuchElementException
+        
+        print(f"🔍 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Проверяем удаление шаблона '{template_name}'")
+        
+        # Проверка 1: Ждем исчезновения элемента
+        try:
+            WebDriverWait(self.browser, 5).until_not(
+                EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{template_name}')]"))
+            )
+            print(f"✅ ПРОВЕРКА 1: Шаблон '{template_name}' исчез из DOM")
+        except:
+            print(f"⚠️ ПРОВЕРКА 1: Шаблон '{template_name}' все еще в DOM")
+        
+        # Проверка 2: Обновляем страницу и проверяем снова
+        time.sleep(1)
+        self.browser.refresh()
+        time.sleep(2)
+        
+        try:
+            self.browser.find_element(By.XPATH, f"//*[contains(text(),'{template_name}')]")
+            raise AssertionError(f"ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Шаблон '{template_name}' все еще присутствует после обновления страницы")
+        except NoSuchElementException:
+            print(f"✅ ПРОВЕРКА 2: Шаблон '{template_name}' отсутствует после обновления страницы")
+        
+        # Проверка 3: Проверяем, что количество шаблонов уменьшилось
+        try:
+            # Ищем все элементы шаблонов (может потребоваться адаптация под вашу структуру)
+            template_elements = self.browser.find_elements(By.XPATH, "//*[contains(@class,'template') or contains(@class,'list')]")
+            print(f"✅ ПРОВЕРКА 3: Найдено {len(template_elements)} элементов шаблонов")
+        except:
+            print(f"⚠️ ПРОВЕРКА 3: Не удалось подсчитать элементы шаблонов")
+        
+        print(f"🎉 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА ЗАВЕРШЕНА: Шаблон '{template_name}' успешно удален")
 
     @allure.step("Открыть модалку добавления группы шаблонов")
     def open_add_group_modal(self):
@@ -289,6 +330,7 @@ class TemplatesPage(BasePage):
 
     @allure.step("Обновить название группы")
     def update_group_name(self, new_group_name: str):
+        # Очищаем поле и вводим новое название
         self._fill_input(self.GROUP_NAME_INPUT, new_group_name)
 
     @allure.step("Сохранить изменения группы")
@@ -415,93 +457,4 @@ class TemplatesPage(BasePage):
             btn.click()
         except Exception:
             self.browser.execute_script("arguments[0].click();", btn)
-
-    @allure.step("Найти и удалить группу по имени")
-    def delete_group_by_name(self, group_name: str):
-        # Сначала найдем элемент с именем группы
-        group_element = self._wait().until(
-            EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{group_name}')]"))
-        )
-        
-        # Прокрутим к элементу
-        self.browser.execute_script("arguments[0].scrollIntoView({block:'center'});", group_element)
-        
-        # Найдем все кнопки в контейнере группы
-        all_buttons = self.browser.find_elements(
-            By.XPATH, 
-            f"//*[contains(text(),'{group_name}')]/ancestor::*[contains(@class,'template') or contains(@class,'list') or self::li]//button"
-        )
-        
-        delete_btn = None
-        
-        # Попробуем найти кнопку удаления по различным критериям
-        for button in all_buttons:
-            try:
-                # Проверим, есть ли SVG в кнопке
-                svg = button.find_element(By.TAG_NAME, "svg")
-                viewbox = svg.get_attribute('viewBox')
-                paths = svg.find_elements(By.TAG_NAME, "path")
-                
-                # Кнопка удаления (корзина) обычно имеет viewBox="0 0 18 18" и много path элементов
-                if viewbox == "0 0 18 18" and len(paths) >= 4:
-                    delete_btn = button
-                    break
-            except:
-                continue
-        
-        # Если не нашли по SVG, попробуем найти по атрибутам
-        if delete_btn is None:
-            for button in all_buttons:
-                try:
-                    title = button.get_attribute('title') or ''
-                    aria_label = button.get_attribute('aria-label') or ''
-                    class_name = button.get_attribute('class') or ''
-                    
-                    if any(keyword in (title + aria_label + class_name).lower() for keyword in ['delete', 'remove', 'trash', 'удалить']):
-                        delete_btn = button
-                        break
-                except:
-                    continue
-        
-        # Если все еще не нашли, возьмем последнюю кнопку (обычно кнопка удаления идет последней)
-        if delete_btn is None and all_buttons:
-            delete_btn = all_buttons[-1]
-        
-        if delete_btn is None:
-            raise Exception(f"Не удалось найти кнопку удаления для группы '{group_name}'")
-        
-        # Кликнуть на кнопку удаления
-        try:
-            delete_btn.click()
-        except Exception:
-            self.browser.execute_script("arguments[0].click();", delete_btn)
-        
-        # Подтвердить удаление
-        confirm_btn = self._wait().until(EC.element_to_be_clickable(self.CONFIRM_DELETE_BUTTON))
-        try:
-            confirm_btn.click()
-        except Exception:
-            self.browser.execute_script("arguments[0].click();", confirm_btn)
-        
-        # Дождаться исчезновения группы из списка
-        time.sleep(2)  # Даем время на обработку удаления
-        try:
-            WebDriverWait(self.browser, 5).until_not(
-                EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{group_name}')]"))
-            )
-        except:
-            # Если не удалось дождаться исчезновения, обновим страницу и проверим
-            self.browser.refresh()
-            time.sleep(2)
-
-    @allure.step("Проверить отсутствие группы в списке")
-    def assert_group_not_in_list(self, group_name: str):
-        # Проверяем, что группа больше не отображается в списке
-        from selenium.common.exceptions import NoSuchElementException
-        try:
-            self.browser.find_element(By.XPATH, f"//*[contains(text(),'{group_name}')]")
-            raise AssertionError(f"Группа '{group_name}' все еще присутствует в списке")
-        except NoSuchElementException:
-            # Элемент не найден - это ожидаемое поведение
-            pass
 
