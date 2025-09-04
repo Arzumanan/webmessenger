@@ -1,6 +1,7 @@
 """
-Страница смены пароля пользователя
+Страница смены пароля профиля
 """
+from time import sleep
 import allure
 from pages.base_page import BasePage
 
@@ -9,21 +10,34 @@ class ChangePasswordPage(BasePage):
     """Класс для работы со страницей смены пароля"""
     
     # Локаторы элементов страницы
-    CURRENT_PASSWORD_FIELD = ("xpath", "//input[@id='current-password']")
-    NEW_PASSWORD_FIELD = ("xpath", "//input[@id='new-password']")
-    CONFIRM_PASSWORD_FIELD = ("xpath", "//input[@id='confirm-password']")
+    CURRENT_PASSWORD_FIELD = ("xpath", "//input[@id='oldPassword']")
+    NEW_PASSWORD_FIELD = ("xpath", "//input[@id='password']")
+    CONFIRM_PASSWORD_FIELD = ("xpath", "//input[@id='repeatPassword']")
     SAVE_BUTTON = ("xpath", "//button[@type='submit' and contains(text(), 'Сохранить')]")
     CANCEL_BUTTON = ("xpath", "//button[contains(text(), 'Отмена')]")
     SUCCESS_MESSAGE = ("xpath", "//div[contains(@class, 'success-message')]")
-    ERROR_MESSAGE = ("xpath", "//div[contains(@class, 'error-message')]")
+    ERROR_MESSAGE = ("xpath", "//p[contains(@class, 'form-status')]")
+    ERROR_MESSAGE2 = ("xpath", "//label[contains(@class, 'input__label') and contains(text(),'Пароли должны совпадать')]")
     PASSWORD_STRENGTH_INDICATOR = ("xpath", "//div[contains(@class, 'password-strength')]")
+    PROFILE_CHANGE_PASSWORD_BUTTON = ("xpath", "//button[contains(text(), 'Сменить пароль')]")
+    PROFILE_BUTTON = ("xpath", "//span[contains(text(), 'Профиль')]")
+    RAZV_BUTTON = ("xpath", "//button[contains(@class, 'navbar-toggle')]")
     
     @allure.step('Открытие страницы смены пароля')
     def open_change_password_page(self):
         """Открыть страницу смены пароля"""
-        # Здесь должен быть URL или переход к странице смены пароля
-        # self.browser.get(f"{self.base_url}/profile/change-password")
-        pass
+        self.element_in_clickable(self.RAZV_BUTTON).click()
+        self.element_in_clickable(self.PROFILE_BUTTON).click()
+        self.element_in_clickable(self.PROFILE_CHANGE_PASSWORD_BUTTON).click()
+        sleep(2)
+       
+
+
+    @allure.step('Сохранение пустой формы')
+    def save_empty_password(self, password):
+        """Не вводить пароль"""
+        self.element_in_clickable(self.SAVE_BUTTON).click()
+        sleep(2)
     
     @allure.step('Ввод текущего пароля')
     def enter_current_password(self, password):
@@ -101,6 +115,14 @@ class ChangePasswordPage(BasePage):
             return error_message.text
         except:
             return ""
+
+    def get_error_message_text2(self):
+        """Получить текст сообщения об ошибке2"""
+        try:
+            error_message = self.element_in_visible(self.ERROR_MESSAGE2, timeout=5)
+            return error_message.text
+        except:
+            return ""        
     
     def get_password_strength(self):
         """Получить индикатор силы пароля"""
