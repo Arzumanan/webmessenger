@@ -1,6 +1,7 @@
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 
@@ -21,3 +22,23 @@ def browser(request):
         request.cls.driver = driver
     yield driver  # Выход из фикстуры, передача браузера в тест
     driver.quit()  # Закрытие браузера после завершения теста
+
+@pytest.fixture(scope="function")
+def admin_authorized(browser):
+    from pages.login_admin_page import LoginAdminPage
+    from cookie.cookies import load_cookies, save_cookies
+    from config.data import admin_email, admin_password
+    # Пытаемся восстановить сессию по куки
+    if load_cookies(browser):
+        return browser
+
+    # Если куки нет — логинимся и сохраняем
+    page = LoginAdminPage(browser)
+    page.open_host()
+    page.open_admin_login_page()
+    page.enter_email(admin_email)
+    page.enter_password(admin_password)
+    page.admin_authorization()
+    WebDriverWait(browser, 15).until(lambda d: "/login" not in d.current_url)
+    save_cookies(browser)
+    return browser
