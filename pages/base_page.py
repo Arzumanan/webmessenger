@@ -10,7 +10,7 @@ from config.links import Links
 class BasePage:
     def __init__(self, browser):
         self.browser: WebDriver = browser
-        self.wait = WebDriverWait(browser, 10)
+        self.wait = WebDriverWait(browser, 15)  # Увеличили время ожидания
 
     @allure.step("Открытие страницы")
     def open(self):
