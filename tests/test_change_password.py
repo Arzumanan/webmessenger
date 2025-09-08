@@ -30,18 +30,6 @@ class TestChangePassword(BaseTest):
         new_password = "12345678"
         
 
-        # with allure.step("Сохранение пустой формы"):
-        #    self.change_password_page.save_empty_password(current_password)
-            
-        #     # Проверка сообщения об ошибке
-        # assert self.change_password_page.is_error_message_displayed(), \
-        #         "Сообщение об ошибке не отображается"
-            
-
-        # error_message = self.change_password_page.get_error_message_text()
-        # assert "не может быть пустым" in error_message.lower() or "не может быть пустым" in error_message.lower() or "обязательное поле" in error_message.lower(), \
-        #         f"Неожиданное сообщение об ошибке: {error_message}"
-
         with allure.step("Смена пароля"):
             # Выполнение смены пароля
             self.change_password_page.change_password(
@@ -59,13 +47,6 @@ class TestChangePassword(BaseTest):
             
             print(f"✅ Успешная проверка URL: {current_url}")
             
-            # Проверка успешного сообщения
-            # assert self.change_password_page.is_success_message_displayed(), \
-            #    "Сообщение об успешной смене пароля не отображается"
-            
-            # success_message = self.change_password_page.get_success_message_text()
-            # assert "успешно" in success_message.lower() or "изменен" in success_message.lower(), \
-            #    f"Неожиданное сообщение об успехе: {success_message}"
     
     @allure.title("Смена пароля с неверным текущим паролем")
     def test_password_change_with_wrong_current_password(self):
@@ -125,9 +106,6 @@ class TestChangePassword(BaseTest):
                 confirm_password=confirm_password
             )
             sleep(2)
-            # Проверка сообщения об ошибке
-            # assert self.change_password_page.is_error_message_displayed(), \
-            #     "Сообщение об ошибке не отображается"
             
             error_message = self.change_password_page.get_error_message_text2()
             assert "должны совпадать" in error_message.lower() or "должны совпадать" in error_message.lower() or "разные" in error_message.lower(), \
@@ -202,22 +180,17 @@ class TestChangePassword(BaseTest):
             
             # Попытка сохранить форму с пустыми полями
             self.change_password_page.click_save_button()
-            
-            # Проверка, что отображается сообщение об ошибке
-            assert self.change_password_page.get_error_message_text2(), \
-                "Сообщение об ошибке должно отображаться при пустых полях"
-            
-            error_message = self.change_password_page.get_error_message_text2()
-            assert error_message, "Сообщение об ошибке не должно быть пустым"
+            sleep(2)
+
+            error_message = self.change_password_page.get_error_message_text3()
+            assert "введите старый пароль" in error_message.lower() or "введите старый пароль" in error_message.lower() or "разные" in error_message.lower(), \
+                f"Неожиданное сообщение об ошибке: {error_message}"
             
             # Проверка содержания сообщения об ошибке
             expected_errors = [
-                "не может быть пустым",
-                "обязателен для заполнения", 
-                "заполните поле",
                 "введите старый пароль",
-                "required",
-                "empty"
+                "обязателен для заполнения", 
+                "пароль обязателен для заполнения"               
             ]
             
             error_found = any(error in error_message.lower() for error in expected_errors)
@@ -275,12 +248,41 @@ class TestChangePassword(BaseTest):
                 
                 # Попытка сохранить
                 self.change_password_page.click_save_button()
+                sleep(2)
                 
                 # Проверка, что отображается ошибка
-                assert self.change_password_page.get_error_message_text2(), \
-                    f"Ошибка должна отображаться для случая: {test_case['name']}"
-                
-                error_message = self.change_password_page.get_error_message_text2()
+                error_message = self.change_password_page.get_error_message_text4()
                 assert error_message, f"Сообщение об ошибке не должно быть пустым для случая: {test_case['name']}"
+                
+                # Определяем ожидаемые ошибки в зависимости от тест-кейса
+                if test_case['name'] == "Только текущий пароль":
+                    expected_errors = [
+                        "старый пароль",
+                        "обязателен для заполнения",
+                        "повторите"
+                    ]
+                elif test_case['name'] == "Только новый пароль":
+                    expected_errors = [
+                        "старый пароль",
+                        "обязателен для заполнения",
+                        "повторите"
+                    ]
+                elif test_case['name'] == "Текущий и новый пароль без подтверждения":
+                    expected_errors = [
+                        "старый пароль",
+                        "обязателен для заполнения",
+                        "повторите"
+                    ]
+                else:
+                    expected_errors = [
+                        "старый пароль",
+                        "обязателен для заполнения",
+                        "повторите"
+                    ]
+                
+                # Проверяем, что сообщение об ошибке содержит ожидаемый текст
+                error_found = any(error in error_message.lower() for error in expected_errors)
+                assert error_found, \
+                    f"Для случая '{test_case['name']}' ожидалось сообщение содержащее один из: {expected_errors}, но получено: '{error_message}'"
                 
                 print(f"✅ {test_case['name']}: {error_message}")
