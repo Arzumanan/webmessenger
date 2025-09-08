@@ -18,6 +18,8 @@ class ChangePasswordPage(BasePage):
     SUCCESS_MESSAGE = ("xpath", "//div[contains(@class, 'success-message')]")
     ERROR_MESSAGE = ("xpath", "//p[contains(@class, 'form-status')]")
     ERROR_MESSAGE2 = ("xpath", "//label[contains(@class, 'input__label') and contains(text(),'Пароли должны совпадать')]")
+    ERROR_MESSAGE3 = ("xpath", "//label[contains(@class, 'input__label') and contains(text(),'Введите старый пароль')]")
+    ERROR_MESSAGE4 = ("xpath", "//label[contains(@class, 'input__label')]")
     PASSWORD_STRENGTH_INDICATOR = ("xpath", "//div[contains(@class, 'password-strength')]")
     PROFILE_CHANGE_PASSWORD_BUTTON = ("xpath", "//button[contains(text(), 'Сменить пароль')]")
     PROFILE_BUTTON = ("xpath", "//span[contains(text(), 'Профиль')]")
@@ -123,6 +125,24 @@ class ChangePasswordPage(BasePage):
             return error_message.text
         except:
             return ""        
+
+
+    def get_error_message_text3(self):
+        """Получить текст сообщения об ошибке3"""
+        try:
+            error_message = self.element_in_visible(self.ERROR_MESSAGE3, timeout=5)
+            return error_message.text
+        except:
+            return ""   
+
+            
+    def get_error_message_text4(self):
+        """Получить текст сообщения об ошибке3"""
+        try:
+            error_message = self.element_in_visible(self.ERROR_MESSAGE4, timeout=5)
+            return error_message.text
+        except:
+            return ""              
     
     def get_password_strength(self):
         """Получить индикатор силы пароля"""
