@@ -4,4 +4,5 @@ class Links:
     MANAGER_LOGIN_URL = "https://testim.i2crm.ru/manager/login"
     ADMIN_LOGIN_URL = "https://testim.i2crm.ru/user/login"
     TEMPLATES_URL = "https://testim.i2crm.ru/template"
+    PERMISSIONS_MANAGER_URL = "https://testim.i2crm.ru/manager/permissions"
 
