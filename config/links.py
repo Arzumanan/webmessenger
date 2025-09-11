@@ -6,3 +6,4 @@ class Links:
     TEMPLATES_URL = "https://testim.i2crm.ru/template"
     PERMISSIONS_MANAGER_URL = "https://testim.i2crm.ru/managers"
 
+
