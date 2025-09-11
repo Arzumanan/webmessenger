@@ -6,6 +6,7 @@ from pages.login_manager_page import LoginManagerPage
 from pages.templates_page import TemplatesPage
 from pages.managers_page import ManagersPage
 from pages.profile.change_password_page import ChangePasswordPage
+from pages.contacts.contacts_page import ContactsPage
 
 
 class BaseTest:
@@ -15,6 +16,7 @@ class BaseTest:
     templates_page: TemplatesPage
     managers_page: ManagersPage
     change_password_page: ChangePasswordPage
+    contacts_page: ContactsPage
 
     @pytest.fixture(autouse=True)
     def setup(self, request, browser):
@@ -25,3 +27,4 @@ class BaseTest:
         request.cls.templates_page = TemplatesPage(browser)
         request.cls.managers_page = ManagersPage(browser)
         request.cls.change_password_page = ChangePasswordPage(browser)
+        request.cls.contacts_page = ContactsPage(browser)
