@@ -3,11 +3,9 @@ import pytest
 import allure
 from pages.base_test import BaseTest
 
-
 @allure.suite("Разрешения менеджера")
 class TestPermissionsManager(BaseTest):
 
-    @pytest.mark.smoke
     @allure.title("Активация тестового тега 1")
     def test_activate_tag(self, admin_authorized):
         self.permissions_manager_page.open()
@@ -17,7 +15,7 @@ class TestPermissionsManager(BaseTest):
         self.permissions_manager_page.click_save_button()   
         self.permissions_manager_page.go_to_manager_permissions()
         self.permissions_manager_page.check_activate_test_tag_1()
-
+    
     @allure.title("Деактивация тестового тега 1")
     def test_deactivate_tag(self, admin_authorized):
         self.permissions_manager_page.open()
@@ -47,7 +45,7 @@ class TestPermissionsManager(BaseTest):
         self.permissions_manager_page.click_save_button()   
         self.permissions_manager_page.go_to_manager_permissions()
         self.permissions_manager_page.check_deactivate_test_status_1()
-
+    
     @allure.title("Активация разрешения 'Сохранить доступ к диалогам'")
     def test_activate_save_dialog_access(self, admin_authorized):
         self.permissions_manager_page.open()
