@@ -2,19 +2,26 @@ import allure
 import random
 import string
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 from pages.base_page import BasePage
 
 
 class StatusPage(BasePage):
     PAGE_URL = "https://testim.i2crm.ru/tags-statuses"
 
-    # Локаторы для кнопок и полей добавления статуса
+    # Константы
+    MIN_STATUS_LENGTH = 4
+    MAX_STATUS_LENGTH = 19
+
+    # Локаторы
     ADD_STATUS_BUTTON = ("xpath", "//button[contains(@class, 'tags-status-settings__add-btn') and contains(text(), '+ Добавить статус')]")
     STATUS_INPUT_FIELD = ("xpath", "//input[@class='add-contact-form-control-input' and @placeholder='Текст']")
     SUBMIT_ADD_STATUS_BUTTON = ("xpath", "//button[contains(@class, 'btn_primary') and contains(text(), 'Добавить статус')]")
+    CONFIRM_DELETE_YES_BUTTON = ("xpath", "//button[contains(@class, 'btn_primary') and text()='Да']")
+    CONFIRM_EDIT_BUTTON = ("xpath", "//div[@class='warning_wrapper']//button[contains(text(), 'Да')]")
+    EDIT_STATUS_INPUT = ("xpath", "//input[@class='add-contact-form-control-input']")
+    SAVE_EDIT_BUTTON = ("xpath", "//button[@type='button' and text()='Сохранить']")
+    ERROR_SHORT_STATUS = ("xpath", "//span[@class='add-contact-form-control-label-red' and text()='Введите более 3 символов.']")
+    ERROR_COLOR_STATUS = ("xpath", "//span[@class='add-contact-form-control-label-red' and text()='Все поля обязательны для заполнения.']")
     
     # Локаторы для выбора цвета статуса
     COLOR_BUTTONS = ("xpath", "//button[contains(@class, 'add-contact-form-color-item') and not(contains(@class, 'others'))]")
@@ -22,28 +29,38 @@ class StatusPage(BasePage):
     # Локаторы для модального окна
     MODAL_HEADER = ("xpath", "//div[@class='add-contact-header-text' and text()='Добавить статус']")
 
+    # Динамические локаторы
+    @staticmethod
+    def get_status_locator(status_text):
+        """Локатор для поиска статуса по тексту"""
+        return ("xpath", f"//span[@class='status-item_title' and text()='{status_text}']")
+    
+    @staticmethod
+    def get_delete_status_locator(status_text):
+        """Локатор для кнопки удаления статуса"""
+        return ("xpath", f"//span[@class='status-item_title' and text()='{status_text}']/following-sibling::*[name()='svg'][2]")
+    
+    @staticmethod
+    def get_edit_status_locator(status_text):
+        """Локатор для кнопки редактирования статуса"""
+        return ("xpath", f"//span[@class='status-item_title' and text()='{status_text}']/following-sibling::*[name()='svg'][1]")
+
+    # Основные действия
     @allure.step("Открытие страницы статусов")
     def open_status_page(self):
-        """Открытие страницы статусов"""
         self.browser.get(self.PAGE_URL)
-        self.wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        self.element_in_visible((By.TAG_NAME, "body"))
 
-    @allure.step("Нажатие на кнопку 'Добавить статус'")
+    @allure.step("Нажатие на кнопку добавления статуса")
     def click_add_status_button(self):
-        """Нажатие на кнопку добавления статуса"""
-        add_button = self.element_in_clickable(self.ADD_STATUS_BUTTON)
-        add_button.click()
+        self.element_in_clickable(self.ADD_STATUS_BUTTON).click()
 
-    @allure.step("Заполнение поля ввода статуса")
-    def fill_status_input(self, status_text):
-        """Заполнение поля ввода статуса"""
-        status_input = self.element_in_clickable(self.STATUS_INPUT_FIELD)
-        status_input.clear()
-        status_input.send_keys(status_text)
+    @allure.step("Ввод текста в поле статуса")
+    def input_status_field(self, status_text):
+        self.element_in_clickable(self.STATUS_INPUT_FIELD).send_keys(status_text)
 
     @allure.step("Выбор цвета статуса")
     def select_status_color(self, color_index=None):
-        """Выбор цвета статуса по индексу (0-4) или случайный"""
         if color_index is None:
             color_index = random.randint(0, 4)
         
@@ -56,58 +73,101 @@ class StatusPage(BasePage):
             color_buttons[0].click()
             return 0
 
-    @allure.step("Нажатие на кнопку 'Добавить статус' для сохранения")
-    def click_submit_add_status(self):
-        """Нажатие на кнопку сохранения статуса"""
-        submit_button = self.element_in_clickable(self.SUBMIT_ADD_STATUS_BUTTON)
-        submit_button.click()
+    @allure.step("Нажатие на кнопку сохранения статуса")
+    def click_submit_add_status_button(self):
+        self.element_in_clickable(self.SUBMIT_ADD_STATUS_BUTTON).click()
 
-    @allure.step("Создание нового статуса")
-    def create_status(self, status_text, color_index=None):
-        """Полный процесс создания статуса"""
-        self.click_add_status_button()
+    @allure.step("Создание статуса")
+    def create_status(self, status_text=None, color_index=None):
+        """Создание нового статуса с автоматическим трекингом"""
+        if status_text is None:
+            status_text = self.generate_random_status()
+
+        # Создание статуса
+        self.element_in_clickable(self.ADD_STATUS_BUTTON).click()
         
         # Ждем появления модального окна
         self.element_in_visible(self.MODAL_HEADER)
         
-        self.fill_status_input(status_text)
+        status_input = self.element_in_clickable(self.STATUS_INPUT_FIELD)
+        status_input.clear()
+        status_input.send_keys(status_text)
+        
         self.select_status_color(color_index)
-        self.click_submit_add_status()
-        
-        # Ждем, пока статус появится на странице
-        import time
-        time.sleep(2)  # Даем время на обновление страницы
+        self.element_in_clickable(self.SUBMIT_ADD_STATUS_BUTTON).click()
+        return status_text
 
-    @allure.step("Генерация случайного статуса")
-    def generate_random_status(self, min_length=4, max_length=19):
-        """Генерация случайного статуса заданной длины (максимум 19 символов)"""
-        length = random.randint(min_length, min(max_length, 19))
-        return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    @allure.step("Удаление статуса")
+    def delete_status(self, status_text):
+        """Удаление статуса по названию"""
+        delete_locator = self.get_delete_status_locator(status_text)
+        self.element_in_clickable(delete_locator).click()
+        self.element_in_clickable(self.CONFIRM_DELETE_YES_BUTTON).click()
 
-    @allure.step("Поиск статуса по тексту")
-    def find_status_by_text(self, status_text):
-        """Поиск статуса по тексту"""
-        # Ищем по точной структуре HTML
-        locators = [
-            f"//span[@class='status-item_title' and text()='{status_text}']",
-            f"//span[@class='status-item_title' and contains(text(), '{status_text}')]",
-            f"//li[@class='status-item']//span[@class='status-item_title' and text()='{status_text}']",
-            f"//li[@class='status-item']//span[@class='status-item_title' and contains(text(), '{status_text}')]"
-        ]
-        
-        for xpath in locators:
-            try:
-                elements = self.browser.find_elements(By.XPATH, xpath)
-                if elements:
-                    return elements[0]
-            except:
-                continue
-        
-        return None
+    @allure.step("Редактирование статуса")
+    def edit_status(self, old_status_text, new_status_text, color_index=None):
+        """Редактирование существующего статуса"""
+        edit_locator = self.get_edit_status_locator(old_status_text)
+        self.element_in_clickable(edit_locator).click()
 
+        # Подтверждение и редактирование
+        self.element_in_clickable(self.CONFIRM_EDIT_BUTTON).click()
+
+        edit_input = self.element_in_clickable(self.EDIT_STATUS_INPUT)
+        edit_input.clear()
+        edit_input.send_keys(new_status_text)
+
+        # Выбор цвета при редактировании (если указан)
+        if color_index is not None:
+            self.select_status_color(color_index)
+
+        self.element_in_clickable(self.SAVE_EDIT_BUTTON).click()
+        return new_status_text
+
+    # Проверки
     @allure.step("Проверка наличия статуса")
     def is_status_present(self, status_text):
-        """Проверка наличия статуса на странице"""
-        status_element = self.find_status_by_text(status_text)
-        return status_element is not None
+        try:
+            status_locator = self.get_status_locator(status_text)
+            self.element_in_visible(status_locator)
+            assert True, f"Статус '{status_text}' найден на странице"
+        except Exception as e:
+            assert False, f"Статус '{status_text}' не найден на странице. Ошибка: {str(e)}"
+
+    @allure.step("Проверка отсутствия статуса")
+    def is_status_not_present(self, status_text):
+        try:
+            status_locator = self.get_status_locator(status_text)
+            self.element_is_not_visible(status_locator)
+            assert True, f"Статус '{status_text}' отсутствует на странице"
+        except Exception as e:
+            assert False, f"Статус '{status_text}' все еще присутствует на странице. Ошибка: {str(e)}"
+
+    @allure.step("Проверка ошибки короткого статуса")
+    def check_error_short_status(self):
+        """Проверка отображения ошибки для короткого статуса"""
+        try:
+            self.element_in_visible(self.ERROR_SHORT_STATUS)
+            assert True, "Ошибка короткого статуса отображается корректно"
+        except Exception as e:
+            assert False, f"Ошибка короткого статуса не отображается. Ошибка: {str(e)}"
+
+    @allure.step("Проверка ошибки цвета статуса")
+    def check_error_color_status(self):
+        """Проверка отображения ошибки для цвета статуса"""
+        try:
+            self.element_in_visible(self.ERROR_COLOR_STATUS)
+            assert True, "Ошибка цвета статуса отображается корректно"
+        except Exception as e:
+            assert False, f"Ошибка цвета статуса не отображается. Ошибка: {str(e)}"
+
+    # Утилиты
+    @allure.step("Генерация случайного статуса")
+    def generate_random_status(self, min_length=None, max_length=None):
+        """Генерация случайного статуса"""
+        min_len = min_length or self.MIN_STATUS_LENGTH
+        max_len = max_length or self.MAX_STATUS_LENGTH
+        length = random.randint(min_len, max_len)
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
 

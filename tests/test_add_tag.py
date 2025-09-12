@@ -3,7 +3,6 @@ import pytest
 from pages.base_test import BaseTest
 
 
-@pytest.mark.smoke
 @allure.suite("Создание и управление тегами")
 class TestTagManagement(BaseTest):
     @allure.title("Создание и удаление тега")
