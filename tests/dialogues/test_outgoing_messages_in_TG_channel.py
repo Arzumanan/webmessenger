@@ -3,7 +3,6 @@ import pytest
 
 from pages.dialogs.base_dialogs import (
     BaseDialogsPage, 
-    browser,
     dialogs_page, 
     admin_ura_authorized, 
     dialogs_page_ready, 
