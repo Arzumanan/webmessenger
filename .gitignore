@@ -12,6 +12,7 @@ __pycache__/
 # Временные файлы
 tatus
 ter
+  head -50
 *.tmp
 *.temp
 *.log
