@@ -393,33 +393,6 @@ TEST_MESSAGE = "Тестовоео сообщение  в ТГ канал из �
 
 # Фикстуры для pytest
 @pytest.fixture(scope="function")
-def browser():
-    """Фикстура для создания браузера"""
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
-    
-    driver = webdriver.Chrome(options=chrome_options)
-    driver.implicitly_wait(10)
-    
-    yield driver
-    driver.quit()
-
-
-@pytest.fixture(scope="function")
-def clean_browser(browser):
-    """Фикстура для очистки браузера между тестами"""
-    browser.delete_all_cookies()
-    browser.refresh()
-    return browser
-
-
-@pytest.fixture(scope="function")
 def dialogs_page(browser):
     """Фикстура для создания экземпляра BaseDialogsPage"""
     return BaseDialogsPage(browser)
