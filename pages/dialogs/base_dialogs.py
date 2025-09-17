@@ -34,6 +34,12 @@ class BaseDialogsPage(BasePage):
     MESSAGE_TEXTAREA_ALT = ("xpath", "//textarea[contains(@class, 'mainbar-chat-area')]")
     SEND_BUTTON = ("xpath", "//button[contains(@class, 'send-button') or contains(@class, 'send')]")
     
+    # Локаторы для фильтра диалогов
+    FILTER_TOGGLE_BUTTON = ("xpath", "//button[contains(@class, 'dialogs-filter__toggle-filter-btn')]")
+    EXPIRED_DIALOGS_TOGGLE = ("xpath", "//div[@class='toggle-with-text']//p[text()='Показать просроченные диалоги']/preceding-sibling::label//input[@type='checkbox']")
+    EXPIRED_DIALOGS_TOGGLE_CONTAINER = ("xpath", "//div[@class='toggle-with-text']//p[text()='Показать просроченные диалоги']/preceding-sibling::label")
+    EXPIRED_DIALOGS_TEXT = ("xpath", "//p[@class='toggle-with-text__text' and text()='Показать просроченные диалоги']")
+    
     @allure.step("Авторизация admin_ura")
     def login_as_admin_ura(self):
         """Полная авторизация пользователя admin_ura"""
@@ -60,6 +66,209 @@ class BaseDialogsPage(BasePage):
         )
         
         return self
+
+    @allure.step("Авторизация менеджера")
+    def login_as_manager(self):
+        """Полная авторизация пользователя admin_ura"""
+        from pages.login_admin_page import LoginAdminPage
+        from config.data import admin_ura_email, admin_ura_password
+        
+        login_page = LoginAdminPage(self.browser)
+        
+        # Открываем главную страницу
+        self.open_host()
+        assert "Веб-мессенджер" in self.browser.title, "Не удалось открыть главную страницу"
+        
+        # Переходим на страницу авторизации
+        login_page.open_admin_login_page()
+        
+        # Вводим данные для авторизации
+        login_page.enter_email(admin_ura_email)
+        login_page.enter_password(admin_ura_password)
+        
+        # Выполняем авторизацию
+        login_page.admin_authorization()
+        
+        # Ожидаем успешной авторизации и перехода в диалоги
+        WebDriverWait(self.browser, 20).until(
+            lambda d: "/login" not in d.current_url and "/dialogs" in d.current_url,
+            "Авторизация admin_ura не завершилась или не произошел переход в диалоги"
+        )
+        
+        return self
+
+    @allure.step("Переход в диалоги")
+    def navigate_to_dialogs(self):
+        """Переход в раздел диалогов"""
+        # Кликаем по ссылке диалогов
+        dialogs_link = self.element_in_clickable(self.DIALOGS_NAV_LINK)
+        dialogs_link.click()
+        
+        # Ожидаем загрузки страницы диалогов
+        WebDriverWait(self.browser, 10).until(
+            lambda d: "/dialogs" in d.current_url,
+            "Не произошел переход в диалоги"
+        )
+        
+        return self
+
+    @allure.step("Нажатие на кнопку фильтра")
+    def click_filter_toggle_button(self):
+        """Нажатие на кнопку переключения фильтра диалогов"""
+        try:
+            # Ждем появления кнопки фильтра
+            filter_button = WebDriverWait(self.browser, 10).until(
+                EC.element_to_be_clickable(self.FILTER_TOGGLE_BUTTON),
+                "Кнопка фильтра не найдена"
+            )
+            
+            # Прокручиваем к кнопке, если необходимо
+            self.browser.execute_script("arguments[0].scrollIntoView(true);", filter_button)
+            
+            # Небольшая пауза перед кликом
+            self.browser.implicitly_wait(1)
+            
+            # Пробуем кликнуть по кнопке разными способами
+            try:
+                filter_button.click()
+            except:
+                # Если обычный клик не работает, используем JavaScript
+                self.browser.execute_script("arguments[0].click();", filter_button)
+            
+            # Ждем, чтобы фильтр открылся и появилась надпись
+            WebDriverWait(self.browser, 5).until(
+                EC.presence_of_element_located(self.EXPIRED_DIALOGS_TEXT),
+                "Надпись 'Показать просроченные диалоги' не появилась"
+            )
+            
+            allure.attach(
+                "Нажата кнопка фильтра диалогов, появилась панель фильтров",
+                name="Кнопка фильтра",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            
+            return self
+            
+        except Exception as e:
+            allure.attach(
+                f"Ошибка при нажатии на кнопку фильтра: {str(e)}",
+                name="Ошибка кнопки фильтра",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            raise
+
+    @allure.step("Включение переключателя показа истекших диалогов")
+    def toggle_expired_dialogs_filter(self):
+        """Включение переключателя показа истекших диалогов"""
+        try:
+            # Пробуем найти переключатель по основному локатору
+            toggle_container = None
+            try:
+                toggle_container = WebDriverWait(self.browser, 5).until(
+                    EC.element_to_be_clickable(self.EXPIRED_DIALOGS_TOGGLE_CONTAINER),
+                    "Основной переключатель истекших диалогов не найден"
+                )
+            except:
+                # Если основной локатор не сработал, пробуем альтернативный
+                alternative_locator = ("xpath", "//div[contains(@class, 'toggle-with-text')]//p[contains(text(), 'Показать просроченные диалоги')]/preceding-sibling::label")
+                toggle_container = WebDriverWait(self.browser, 5).until(
+                    EC.element_to_be_clickable(alternative_locator),
+                    "Альтернативный переключатель истекших диалогов не найден"
+                )
+            
+            # Прокручиваем к переключателю, если необходимо
+            self.browser.execute_script("arguments[0].scrollIntoView(true);", toggle_container)
+            
+            # Небольшая пауза перед кликом
+            self.browser.implicitly_wait(1)
+            
+            # Кликаем по контейнеру переключателя
+            toggle_container.click()
+            
+            # Ждем, чтобы переключатель сработал
+            self.browser.implicitly_wait(2)
+            
+            allure.attach(
+                "Включен переключатель показа истекших диалогов",
+                name="Переключатель истекших диалогов",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            
+            return self
+            
+        except Exception as e:
+            allure.attach(
+                f"Ошибка при включении переключателя истекших диалогов: {str(e)}",
+                name="Ошибка переключателя",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            raise
+
+    @allure.step("Проверка включения переключателя истекших диалогов")
+    def verify_expired_dialogs_toggle_enabled(self):
+        """Проверка, что переключатель показа истекших диалогов включен"""
+        try:
+            # Пробуем найти переключатель по основному локатору
+            toggle_input = None
+            try:
+                toggle_input = WebDriverWait(self.browser, 5).until(
+                    EC.presence_of_element_located(self.EXPIRED_DIALOGS_TOGGLE),
+                    "Основной переключатель истекших диалогов не найден"
+                )
+            except:
+                # Если основной локатор не сработал, пробуем альтернативный
+                alternative_locator = ("xpath", "//div[contains(@class, 'toggle-with-text')]//p[contains(text(), 'Показать просроченные диалоги')]/preceding-sibling::label//input[@type='checkbox']")
+                toggle_input = WebDriverWait(self.browser, 5).until(
+                    EC.presence_of_element_located(alternative_locator),
+                    "Альтернативный переключатель истекших диалогов не найден"
+                )
+            
+            # Проверяем, что переключатель включен
+            is_checked = toggle_input.is_selected()
+            
+            allure.attach(
+                f"Состояние переключателя истекших диалогов: {'включен' if is_checked else 'выключен'}",
+                name="Состояние переключателя",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            
+            return is_checked
+            
+        except Exception as e:
+            allure.attach(
+                f"Ошибка при проверке состояния переключателя: {str(e)}",
+                name="Ошибка проверки",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            return False
+
+    @allure.step("Проверка появления надписи 'Показать просроченные диалоги'")
+    def verify_expired_dialogs_text_appeared(self):
+        """Проверка появления надписи 'Показать просроченные диалоги'"""
+        try:
+            # Ждем появления надписи
+            expired_dialogs_text = WebDriverWait(self.browser, 10).until(
+                EC.presence_of_element_located(self.EXPIRED_DIALOGS_TEXT),
+                "Надпись 'Показать просроченные диалоги' не появилась"
+            )
+            
+            is_visible = expired_dialogs_text.is_displayed()
+            
+            allure.attach(
+                f"Надпись 'Показать просроченные диалоги': {'видна' if is_visible else 'не видна'}",
+                name="Надпись фильтра",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            
+            return is_visible
+            
+        except Exception as e:
+            allure.attach(
+                f"Ошибка при проверке надписи: {str(e)}",
+                name="Ошибка проверки надписи",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            return False
 
     @allure.step("Проверка перехода в диалоги")
     def verify_dialogs_navigation(self):
