@@ -18,7 +18,9 @@ class ContactsPage(BasePage):
     # Форма создания контакта
     CHANNEL_SELECT_OPEN = ("xpath", "//span[contains(text(), 'Выберите канал')]")
     CHANNEL_SELECT = ("xpath", "//li[contains(text(), 'whatsapp')]")
-    CHANNEL_OPTION_TELEGRAM = ("xpath", "//option[@value='telegram']")
+    CHANNEL_OPTION_ALL = ("xpath", "//span[contains(text(), 'Все каналы')]")
+    CHANNEL_OPTION_INSTAGRAM = ("xpath", "//span[contains(text(), 'instagram')]")
+    CHANNEL_OPTION_TELEGRAM =  ("xpath", "//span[contains(text(), 'telegram')]")
     CHANNEL_OPTION_WHATSAPP = ("xpath", "//option[@value='whatsapp']")
     CHANNEL_OPTION_VIBER = ("xpath", "//option[@value='viber']")
     CHANNEL_OPTION_SMS = ("xpath", "//option[@value='sms']")
@@ -34,14 +36,17 @@ class ContactsPage(BasePage):
     # Поиск и фильтрация
     SEARCH_FIELD = ("xpath", "//input[@class='sidebar-header-search-field-input']")
     SEARCH_BUTTON = ("xpath", "//button[contains(@class, 'search-btn')]")
-    CHANNEL_FILTER = ("xpath", "//select[@id='channelFilter']")
+    CHANNEL_FILTER_OPEN = ("xpath", "//span[contains(text(), 'Выберите канал')]")
+    CHANNEL_FILTER = ("xpath", "//span[contains(text(), 'Каналы контактов')]")
+    CHANNEL_FILTER_SELECT = ("xpath", "//span[@class='channel-select-option__label']")
     FILTER_BUTTON = ("xpath", "//button[contains(text(), 'Фильтровать')]")
     CLEAR_FILTER_BUTTON = ("xpath", "//button[contains(text(), 'Очистить фильтры')]")
     
     # Список контактов
     CONTACTS_LIST = ("xpath", "//div[@class='contacts-list']")
-    CONTACT_ITEM = ("xpath", "//p[@class='contact-card__username']")
-    CONTACT_NAME = ("xpath", "//p[@class='contact-card__username']")
+    CONTACT_ITEM = ("xpath", "//div[@class='contact-card']")
+    CONTACT_NAME = ("xpath", "//div[@class='contact-card']")
+    CONTACT_NAME_INSTAGRAM = ("xpath", "//p[@class='contact-card__username']")
     CONTACT_CHANNEL = ("xpath", ".//span[@class='contact-channel']")
     CONTACT_PHONE = ("xpath", ".//span[@class='contact-phone']")
     
@@ -57,7 +62,7 @@ class ContactsPage(BasePage):
     CANCEL_DELETE_BUTTON = ("xpath", "//button[contains(text(), 'Отмена')]")
     
     # Выгрузка файлов
-    EXPORT_BUTTON = ("xpath", "//button[contains(text(), 'Выгрузить')]")
+    EXPORT_BUTTON =  ("xpath", "//a[@class='load-contacts-ref']")
     EXPORT_EXCEL_BUTTON = ("xpath", "//button[contains(text(), 'Excel')]")
     EXPORT_CSV_BUTTON = ("xpath", "//button[contains(text(), 'CSV')]")
     
@@ -164,18 +169,22 @@ class ContactsPage(BasePage):
     def filter_by_channel(self, channel):
         """Фильтрация контактов по каналу"""
         self.element_in_clickable(self.CHANNEL_FILTER).click()
-        
+        # self.element_in_clickable(self.CHANNEL_FILTER_SELECT).click()
+        # self.element_in_clickable(self.CHANNEL_OPTION_INSTAGRAM).click()
         channel_options = {
-            'telegram': self.CHANNEL_OPTION_TELEGRAM,
-            'whatsapp': self.CHANNEL_OPTION_WHATSAPP,
-            'viber': self.CHANNEL_OPTION_VIBER,
-            'sms': self.CHANNEL_OPTION_SMS
+            # 'all': self.CHANNEL_OPTION_ALL,
+            'instagram': self.CHANNEL_OPTION_INSTAGRAM,
+            'telegram': self.CHANNEL_OPTION_TELEGRAM
+            # 'whatsapp': self.CHANNEL_OPTION_WHATSAPP,
+            # 'viber': self.CHANNEL_OPTION_VIBER,
+            # 'sms': self.CHANNEL_OPTION_SMS
         }
         
         if channel.lower() in channel_options:
             self.element_in_clickable(channel_options[channel.lower()]).click()
         
-        self.element_in_clickable(self.FILTER_BUTTON).click()
+        # self.element_in_clickable(self.CHANNEL_FILTER_SELECT).click()
+        # # self.element_in_clickable(self.FILTER_BUTTON_SELECT).click()
         sleep(2)
         return self
     
@@ -190,7 +199,7 @@ class ContactsPage(BasePage):
     def export_contacts_excel(self):
         """Выгрузить контакты в Excel"""
         self.element_in_clickable(self.EXPORT_BUTTON).click()
-        self.element_in_clickable(self.EXPORT_EXCEL_BUTTON).click()
+        # self.element_in_clickable(self.EXPORT_EXCEL_BUTTON).click()
         sleep(3)
         return self
     
@@ -270,9 +279,9 @@ class ContactsPage(BasePage):
     def find_contact_by_name(self, name):
         """Найти контакт по имени"""
         try:
-            contacts = self.elements_in_visible(self.CONTACT_ITEM)
+            contacts = self.elements_in_visible(self.CONTACT_NAME_INSTAGRAM)
             for contact in contacts:
-                contact_name_element = contact.find_element(*self.CONTACT_NAME)
+                contact_name_element = contact.find_element(*self.CONTACT_NAME_INSTAGRAM)
                 if contact_name_element.text == name:
                     return contact
         except:

@@ -11,7 +11,7 @@ from config.data import admin2_email, admin2_password
 class TestContacts(BaseTest):
     """Класс тестов для работы с контактами"""
     
-    @pytest.mark.skip(reason="Создание контакта - найден баг")
+    @pytest.mark.skip(reason="Создание контакта - найден баг https://atlassian.i2crm.ru/jira/browse/SCRUMDEV-3910")
     @allure.title("Создание контакта")
     def test_create_contact(self):
         """Тест создания нового контакта"""
@@ -127,7 +127,7 @@ class TestContacts(BaseTest):
             
             print(f"✅ Поиск по телефону '9963965523' работает корректно")
     
-    @pytest.mark.skip(reason="Фильтрация тесты еще не написаны")
+    # @pytest.mark.skip(reason="Фильтрация тесты еще не написаны")
     @allure.title("Фильтрация контактов по каналу")
     def test_filter_contacts_by_channel(self):
         """Тест фильтрации контактов по каналу"""
@@ -142,45 +142,74 @@ class TestContacts(BaseTest):
         self.contacts_page.open_contacts_page()
         
         # Создаем контакты для разных каналов
-        contacts_data = [
-            {'channel': 'telegram', 'name': 'Telegram Контакт', 'login': '@tgcontact', 'phone': '+79001111111'},
-            {'channel': 'whatsapp', 'name': 'WhatsApp Контакт', 'login': '@wacontact', 'phone': '+79002222222'},
-            {'channel': 'viber', 'name': 'Viber Контакт', 'login': '@vibercontact', 'phone': '+79003333333'}
-        ]
+        # contacts_data = [
+        #     {'channel': 'telegram', 'name': 'Telegram Контакт', 'login': '@tgcontact', 'phone': '+79001111111'},
+        #     {'channel': 'whatsapp', 'name': 'WhatsApp Контакт', 'login': '@wacontact', 'phone': '+79002222222'},
+        #     {'channel': 'viber', 'name': 'Viber Контакт', 'login': '@vibercontact', 'phone': '+79003333333'}
+        # ]
         
-        for contact in contacts_data:
-            self.contacts_page.create_contact(**contact)
+        # for contact in contacts_data:
+        #     self.contacts_page.create_contact(**contact)
+
+
+        # with allure.step("Фильтрация по каналу все"):
+        #     # Фильтрация по всем каналам
+        #     self.contacts_page.filter_by_channel('all')
+            
+        #     # Проверка, что отображаются все контакты
+        #     assert self.contacts_page.is_contact_exists('Все контакты'), "Все контакты не найдены после фильтрации"
+            
+        #     print("✅ Фильтрация по каналу все работает корректно")
+
         
-        with allure.step("Фильтрация по каналу Telegram"):
-            # Фильтрация по Telegram
+        with allure.step("Фильтрация по каналу instagram"):
+            # Фильтрация по instagram
+            self.contacts_page.filter_by_channel('instagram')
+
+            assert self.contacts_page.is_contact_exists('Катя Лескина Катерина Кэйт Кот куда идет'), \
+                f"Контакт не найден при поиске по телефону 'Катя Лескина Катерина Кэйт Кот куда идет'"
+            
+            print(f"✅ Поиск по телефону 'Катя Лескина Катерина Кэйт Кот куда идет' работает корректно")
+            
+        with allure.step("Фильтрация по каналу telegram"):
+            # Фильтрация по instagram
             self.contacts_page.filter_by_channel('telegram')
+
+            assert self.contacts_page.is_contact_exists('Я'), \
+                    f"Контакт не найден при поиске по телефону 'Я'"
             
-            # Проверка, что отображаются только Telegram контакты
-            telegram_contact = self.contacts_page.find_contact_by_name('Telegram Контакт')
-            assert telegram_contact is not None, "Telegram контакт не найден после фильтрации"
+            print(f"✅ Поиск по телефону 'Я' работает корректно")
             
-            print("✅ Фильтрация по каналу Telegram работает корректно")
+
+
+
+
+            # Проверка, что отображаются только instagram контакты
+            # instagram_contact = self.contacts_page.find_contact_by_name('Катя Лескина Катерина Кэйт Кот куда идет')
+            # assert instagram_contact is not None, "instagram контакт не найден после фильтрации"
+            
+            # print("✅ Фильтрация по каналу instagram работает корректно")
         
-        with allure.step("Фильтрация по каналу WhatsApp"):
-            # Фильтрация по WhatsApp
-            self.contacts_page.filter_by_channel('whatsapp')
+        # with allure.step("Фильтрация по каналу WhatsApp"):
+        #     # Фильтрация по WhatsApp
+        #     self.contacts_page.filter_by_channel('whatsapp')
             
-            # Проверка, что отображаются только WhatsApp контакты
-            whatsapp_contact = self.contacts_page.find_contact_by_name('WhatsApp Контакт')
-            assert whatsapp_contact is not None, "WhatsApp контакт не найден после фильтрации"
+        #     # Проверка, что отображаются только WhatsApp контакты
+        #     whatsapp_contact = self.contacts_page.find_contact_by_name('WhatsApp Контакт')
+        #     assert whatsapp_contact is not None, "WhatsApp контакт не найден после фильтрации"
             
-            print("✅ Фильтрация по каналу WhatsApp работает корректно")
+        #     print("✅ Фильтрация по каналу WhatsApp работает корректно")
         
-        with allure.step("Очистка фильтров"):
-            # Очистка фильтров
-            self.contacts_page.clear_filters()
+        # with allure.step("Очистка фильтров"):
+        #     # Очистка фильтров
+        #     self.contacts_page.clear_filters()
             
-            # Проверка, что все контакты отображаются
-            for contact in contacts_data:
-                assert self.contacts_page.is_contact_exists(contact['name']), \
-                    f"Контакт '{contact['name']}' не найден после очистки фильтров"
+        #     # Проверка, что все контакты отображаются
+        #     for contact in contacts_data:
+        #         assert self.contacts_page.is_contact_exists(contact['name']), \
+        #             f"Контакт '{contact['name']}' не найден после очистки фильтров"
             
-            print("✅ Очистка фильтров работает корректно")
+        #     print("✅ Очистка фильтров работает корректно")
     
     @pytest.mark.skip(reason="Выгрузка файла с контактами - тесты еще не написаны")
     @allure.title("Выгрузка файла с контактами")
@@ -197,13 +226,13 @@ class TestContacts(BaseTest):
         self.contacts_page.open_contacts_page()
         
         # Создаем тестовые контакты для выгрузки
-        test_contacts = [
-            {'channel': 'telegram', 'name': 'Экспорт Контакт 1', 'login': '@export1', 'phone': '+79004444444'},
-            {'channel': 'whatsapp', 'name': 'Экспорт Контакт 2', 'login': '@export2', 'phone': '+79005555555'}
-        ]
+        # test_contacts = [
+        #     {'channel': 'telegram', 'name': 'Экспорт Контакт 1', 'login': '@export1', 'phone': '+79004444444'},
+        #     {'channel': 'whatsapp', 'name': 'Экспорт Контакт 2', 'login': '@export2', 'phone': '+79005555555'}
+        # ]
         
-        for contact in test_contacts:
-            self.contacts_page.create_contact(**contact)
+        # for contact in test_contacts:
+        #     self.contacts_page.create_contact(**contact)
         
         with allure.step("Выгрузка контактов в Excel"):
             # Выгрузка в Excel
