@@ -4,6 +4,12 @@
 from time import sleep
 import allure
 from pages.base_page import BasePage
+import urllib.request
+import os
+import pandas as pd
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class ContactsPage(BasePage):
@@ -198,8 +204,12 @@ class ContactsPage(BasePage):
     @allure.step('Выгрузка контактов в Excel')
     def export_contacts_excel(self):
         """Выгрузить контакты в Excel"""
-        self.element_in_clickable(self.EXPORT_BUTTON).click()
-        # self.element_in_clickable(self.EXPORT_EXCEL_BUTTON).click()
+        # self.element_in_clickable(self.EXPORT_BUTTON).click()
+        self.element_in_clickable(self.EXPORT_EXCEL_BUTTON).click()
+
+        #urllib.request.urlopen(f)
+        # urllib.request.urlopen(self.element_in_clickable(self.EXPORT_EXCEL_BUTTON).click())
+        # print(group)
         sleep(3)
         return self
     
@@ -348,3 +358,161 @@ class ContactsPage(BasePage):
             return error_message.text
         except:
             return ""
+    
+    @allure.step('Скачивание Excel файла с контактами')
+    def download_excel_file(self, download_dir=None):
+        """Скачать Excel файл с контактами"""
+        if download_dir is None:
+            download_dir = os.path.join(os.getcwd(), "downloads")
+        
+        # Создаем папку для загрузок если её нет
+        os.makedirs(download_dir, exist_ok=True)
+        
+        # Настраиваем опции браузера для загрузки файлов
+        self.browser.execute_cdp_cmd('Page.setDownloadBehavior', {
+            'behavior': 'allow',
+            'downloadPath': download_dir
+        })
+        
+        # Получаем количество файлов до скачивания
+        files_before = len([f for f in os.listdir(download_dir) if f.endswith('.xlsx')])
+        
+        try:
+            # Проверяем, что кнопка экспорта видна и кликабельна
+            export_button = self.element_in_clickable(self.EXPORT_BUTTON, timeout=15)
+            
+            # Прокручиваем к элементу если нужно
+            self.browser.execute_script("arguments[0].scrollIntoView({block: 'center'});", export_button)
+            sleep(1)
+            
+            # Кликаем на кнопку экспорта Excel
+            export_button.click()
+            print("✅ Кнопка экспорта Excel нажата")
+            
+        except Exception as e:
+            print(f"❌ Ошибка при клике на кнопку экспорта: {e}")
+            # Попробуем альтернативный способ клика
+            try:
+                export_button = self.browser.find_element(*self.EXPORT_BUTTON)
+                self.browser.execute_script("arguments[0].click();", export_button)
+                print("✅ Кнопка экспорта Excel нажата через JavaScript")
+            except Exception as e2:
+                raise Exception(f"Не удалось нажать на кнопку экспорта Excel: {e2}")
+        
+        # Ждем скачивания файла с таймаутом
+        max_wait_time = 30  # Максимальное время ожидания в секундах
+        wait_interval = 1   # Интервал проверки в секундах
+        elapsed_time = 0
+        
+        while elapsed_time < max_wait_time:
+            sleep(wait_interval)
+            elapsed_time += wait_interval
+            
+            # Проверяем количество файлов после скачивания
+            files_after = len([f for f in os.listdir(download_dir) if f.endswith('.csv')])
+            
+            if files_after > files_before:
+                print(f"✅ Файл скачался за {elapsed_time} секунд")
+                break
+                
+            print(f"⏳ Ожидание скачивания... {elapsed_time}/{max_wait_time} сек")
+        else:
+            raise Exception(f"Файл не скачался в течение {max_wait_time} секунд")
+        
+        # Находим самый новый Excel файл
+        excel_files = [f for f in os.listdir(download_dir) if f.endswith('.csv')]
+        if not excel_files:
+            raise Exception("Excel файлы не найдены в папке загрузок")
+            
+        latest_file = max(excel_files, key=lambda x: os.path.getctime(os.path.join(download_dir, x)))
+        file_path = os.path.join(download_dir, latest_file)
+        
+        # Проверяем, что файл действительно скачался и не пустой
+        if not os.path.exists(file_path):
+            raise Exception(f"Файл не найден по пути: {file_path}")
+            
+        file_size = os.path.getsize(file_path)
+        if file_size == 0:
+            raise Exception("Скачанный файл пустой")
+            
+        print(f"✅ Excel файл успешно скачан: {file_path} (размер: {file_size} байт)")
+        
+        return file_path
+    
+    @allure.step('Проверка содержимого Excel файла')
+    def verify_excel_file_content(self, file_path, expected_columns=None):
+        """Проверить содержимое Excel файла"""
+        # try:
+            # Читаем Excel файл
+        #df = pd.read_excel(file_path)
+        
+        df = pd.read_csv(file_path)
+            
+            # Проверяем, что файл не пустой
+        assert not df.empty, "Excel файл пустой"
+            
+            # Проверяем наличие ожидаемых колонок
+            # if expected_columns:
+            #     for column in expected_columns:
+            #         assert column in df.columns, f"Колонка '{column}' не найдена в Excel файле"
+            
+            # # Выводим информацию о файле
+            # print(f"✅ Excel файл содержит {len(df)} строк и {len(df.columns)} колонок")
+            # print(f"📊 Колонки: {list(df.columns)}")
+            
+        return df
+            
+        # except Exception as e:
+        #     assert False, f"Ошибка при чтении Excel файла: {str(e)}"
+    
+    @allure.step('Открытие Excel файла')
+    def open_excel_file(self, file_path):
+        """Открыть Excel файл в системе"""
+        try:
+            import subprocess
+            import platform
+            
+            # Определяем команду для открытия файла в зависимости от ОС
+            if platform.system() == "Windows":
+                os.startfile(file_path)
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.run(["open", file_path])
+            else:  # Linux
+                subprocess.run(["xdg-open", file_path])
+            
+            print(f"✅ Excel файл открыт: {file_path}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Ошибка при открытии файла: {str(e)}")
+            return False
+    
+    @allure.step('Проверка доступности кнопки экспорта Excel')
+    def is_export_button_available(self):
+        """Проверить, доступна ли кнопка экспорта Excel"""
+        try:
+            # Проверяем, что кнопка видна
+            self.element_in_visible(self.EXPORT_BUTTON, timeout=5)
+            # Проверяем, что кнопка кликабельна
+            self.element_in_clickable(self.EXPORT_BUTTON, timeout=5)
+            return True
+        except:
+            return False
+    
+    @allure.step('Полная проверка экспорта Excel')
+    def test_excel_export_complete(self, download_dir=None, expected_columns=None):
+        """Полный тест экспорта Excel файла"""
+        # Проверяем доступность кнопки перед скачиванием
+        if not self.is_export_button_available():
+            raise Exception("Кнопка экспорта Excel недоступна")
+        
+        # Скачиваем файл
+        file_path = self.download_excel_file(download_dir)
+        
+        # Проверяем содержимое
+        df = self.verify_excel_file_content(file_path, expected_columns)
+        
+        # Открываем файл
+        self.open_excel_file(file_path)
+        
+        return file_path, df

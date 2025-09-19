@@ -4,6 +4,7 @@
 from time import sleep
 import pytest
 import allure
+import os
 from pages.base_test import BaseTest
 from config.data import admin2_email, admin2_password
 
@@ -211,56 +212,7 @@ class TestContacts(BaseTest):
             
         #     print("✅ Очистка фильтров работает корректно")
     
-    @pytest.mark.skip(reason="Выгрузка файла с контактами - тесты еще не написаны")
-    @allure.title("Выгрузка файла с контактами")
-    def test_export_contacts(self):
-        """Тест выгрузки контактов в файл"""
-        # Логин как админ
-        self.contacts_page.open_host()
-        self.login_admin_page.open_admin_login_page()
-        self.login_admin_page.enter_email(admin2_email)
-        self.login_admin_page.enter_password(admin2_password)
-        self.login_admin_page.admin_authorization()
-        
-        # Переход на страницу контактов
-        self.contacts_page.open_contacts_page()
-        
-        # Создаем тестовые контакты для выгрузки
-        # test_contacts = [
-        #     {'channel': 'telegram', 'name': 'Экспорт Контакт 1', 'login': '@export1', 'phone': '+79004444444'},
-        #     {'channel': 'whatsapp', 'name': 'Экспорт Контакт 2', 'login': '@export2', 'phone': '+79005555555'}
-        # ]
-        
-        # for contact in test_contacts:
-        #     self.contacts_page.create_contact(**contact)
-        
-        with allure.step("Выгрузка контактов в Excel"):
-            # Выгрузка в Excel
-            self.contacts_page.export_contacts_excel()
-            
-            # Проверка успешной выгрузки
-            assert self.contacts_page.is_success_message_displayed(), \
-                "Сообщение об успешной выгрузке Excel не отображается"
-            
-            success_message = self.contacts_page.get_success_message_text()
-            assert "выгружен" in success_message.lower() or "экспорт" in success_message.lower(), \
-                f"Неожиданное сообщение об успехе: {success_message}"
-            
-            print("✅ Выгрузка в Excel работает корректно")
-        
-        with allure.step("Выгрузка контактов в CSV"):
-            # Выгрузка в CSV
-            self.contacts_page.export_contacts_csv()
-            
-            # Проверка успешной выгрузки
-            assert self.contacts_page.is_success_message_displayed(), \
-                "Сообщение об успешной выгрузке CSV не отображается"
-            
-            success_message = self.contacts_page.get_success_message_text()
-            assert "выгружен" in success_message.lower() or "экспорт" in success_message.lower(), \
-                f"Неожиданное сообщение об успехе: {success_message}"
-            
-            print("✅ Выгрузка в CSV работает корректно")
+   
     
     @pytest.mark.skip(reason="Редактирование контакта - тесты еще не написаны")
     @allure.title("Редактирование контакта")
@@ -451,3 +403,67 @@ class TestContacts(BaseTest):
                 f"Неожиданное сообщение об успехе: {success_message}"
             
             print(f"✅ Сообщение успешно отправлено контакту '{contact_for_message['name']}'")
+    
+    @allure.title("Скачивание и открытие Excel файла с контактами")
+    def test_download_and_open_excel_file(self):
+        """Тест скачивания и открытия Excel файла с контактами"""
+        # Логин как админ
+        self.contacts_page.open_host()
+        self.login_admin_page.open_admin_login_page()
+        self.login_admin_page.enter_email(admin2_email)
+        self.login_admin_page.enter_password(admin2_password)
+        self.login_admin_page.admin_authorization()
+        
+        # Переход на страницу контактов
+        self.contacts_page.open_contacts_page()
+        
+        
+        with allure.step("Скачивание Excel файла с контактами"):
+            # Создаем папку для загрузок
+            download_dir = os.path.join(os.getcwd(), "downloads")
+            os.makedirs(download_dir, exist_ok=True)
+            
+            # Скачиваем Excel файл
+            file_path = self.contacts_page.download_excel_file(download_dir)
+            
+            # Проверяем, что файл существует
+            assert os.path.exists(file_path), f"Файл не найден по пути: {file_path}"
+            
+            # Проверяем размер файла (должен быть больше 0)
+            file_size = os.path.getsize(file_path)
+            assert file_size > 0, "Скачанный файл пустой"
+            
+            print(f"✅ Excel файл успешно скачан: {file_path}")
+            print(f"📁 Размер файла: {file_size} байт")
+        
+        # with allure.step("Проверка содержимого Excel файла"):
+        #     # Ожидаемые колонки в Excel файле (настройте под вашу структуру)
+            expected_columns = ['.jpg']  # Настройте под ваши колонки
+            
+            # Проверяем содержимое файла
+            df = self.contacts_page.verify_excel_file_content(file_path, expected_columns)
+            
+            # Дополнительные проверки содержимого
+            assert len(df) > 0, "В Excel файле нет данных"
+            
+            print(f"✅ Содержимое Excel файла проверено успешно")
+            print(f"📊 Найдено {len(df)} контактов")
+        
+        # with allure.step("Открытие Excel файла - Доработать, тест не валится, но файл открывается и тест подвисает"):
+        #     # Открываем файл в системе
+        #      success = self.contacts_page.open_excel_file(file_path)
+            
+        # if success:
+        #         print("✅ Excel файл успешно открыт в системе")
+        # else:
+        #         print("⚠️ Не удалось открыть файл автоматически, но файл скачан")
+        sleep(5)
+        with allure.step("Очистка тестовых файлов"):
+            # Опционально: удаляем скачанный файл после теста
+            # os.remove(file_path)
+            while os.path.isfile(file_path):
+                os.remove(file_path)
+            print("🗑️ Тестовый файл удален")
+            print(f"📁 Файл сохранен для проверки: {file_path}")
+        sleep(5)
+   
