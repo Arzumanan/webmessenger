@@ -10,7 +10,7 @@ from pages.tags_page import TagsPage
 from pages.status_page import StatusPage
 from pages.permissions_manager_page import PermissionsManagerPage
 from pages.dialogs.base_dialogs import BaseDialogsPage
-
+from pages.dialog_settings_page import DialogSettingsPage
 
 class BaseTest:
     base_page: BasePage
@@ -23,6 +23,7 @@ class BaseTest:
     status_page: StatusPage
     permissions_manager_page: PermissionsManagerPage
     dialogs_page: BaseDialogsPage
+    dialog_settings_page: DialogSettingsPage
 
     @pytest.fixture(autouse=True)
     def setup(self, request, browser):
@@ -37,3 +38,4 @@ class BaseTest:
         request.cls.status_page = StatusPage(browser)
         request.cls.permissions_manager_page = PermissionsManagerPage(browser)
         request.cls.dialogs_page = BaseDialogsPage(browser)
+        request.cls.dialog_settings_page = DialogSettingsPage(browser)
