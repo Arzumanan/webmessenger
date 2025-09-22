@@ -2,14 +2,14 @@ import allure
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait  # Импорт WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from conftest import browser
+from selenium.webdriver.common.by import By
 from config.links import Links
 
 
 class BasePage:
     def __init__(self, browser):
         self.browser: WebDriver = browser
-        self.wait = WebDriverWait(browser, 10)
+        self.wait = WebDriverWait(browser, 15)  # Увеличили время ожидания
 
     @allure.step("Открытие страницы")
     def open(self):

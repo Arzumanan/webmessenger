@@ -15,7 +15,7 @@ class LoginManagerPage(BasePage):
     MANAGER_LOGIN_BUTTON = ("xpath", "//button[contains(text(), 'Менеджер')]")
     LOGIN_BUTTON = ("xpath", "//button[contains(@class, 'btn_primary') and contains(text(),'Войти')]")
     DIALOGS_SIDEBAR = ("xpath", "//span[@class='sidebar-header-profile-name' and text()='Диалоги']")
-
+    
     @allure.step('Переход на страницу авторизации менеджера')
     def open_manager_login_page(self):
         self.element_in_clickable(self.MANAGER_LOGIN_BUTTON).click()

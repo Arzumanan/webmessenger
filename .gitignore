@@ -8,4 +8,48 @@ allure-results
 results/
 *.pyc
 __pycache__/
-#1
+
+# Временные файлы
+tatus
+ter
+  head -50
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+*~
+
+# Cookies и сессии
+cookies/
+*.pkl
+
+# IDE временные файлы
+.vscode/
+*.code-workspace
+
+# OS временные файлы
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python временные файлы
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg

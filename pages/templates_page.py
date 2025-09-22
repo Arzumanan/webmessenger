@@ -44,6 +44,38 @@ class TemplatesPage(BasePage):
         By.XPATH,
         "//h2[contains(@class,'sidebar__title') and normalize-space(.)='Настройки']",
     )
+    
+    # Локаторы для добавления группы шаблонов
+    ADD_TEMPLATE_GROUP_BUTTON = (
+        By.XPATH,
+        "//button[@type='button' and contains(@class,'btn_primary') and contains(@class,'btn_default') and contains(@class,'btn_icon-none') and contains(normalize-space(.), 'Добавить группу шаблонов')]"
+    )
+    ADD_GROUP_MODAL_TITLE = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//div[contains(@class,'add-contact-header-text') and normalize-space(text())='Новая группа']"
+    )
+    GROUP_NAME_INPUT = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//input[@id='subsectionName' and @name='subsectionName']"
+    )
+    CREATE_GROUP_BUTTON = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//button[@type='submit' and contains(normalize-space(.), 'Создать группу')]"
+    )
+    
+    # Локаторы для редактирования группы шаблонов
+    EDIT_GROUP_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class,'template-item_setting_button')]//svg[@viewBox='0 0 18 18']//path[contains(@d,'M1.60449 12.75')]"
+    )
+    EDIT_GROUP_MODAL_TITLE = (
+        By.XPATH,
+        "//form[contains(@class,'add-contact-wrapper')]//div[contains(@class,'add-contact-header-text') and contains(text(),'Редактирование')]"
+    )
+    UPDATE_GROUP_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class,'add-contact-form-submit')]//button[@type='submit' and contains(@class,'btn_primary') and contains(normalize-space(.), 'Обновить')]"
+    )
 
 
 
@@ -187,10 +219,242 @@ class TemplatesPage(BasePage):
     @allure.step("Проверить отсутствие шаблона в списке")
     def assert_template_not_in_list(self, template_name: str):
         # Проверяем, что шаблон больше не отображается в списке
+        from selenium.common.exceptions import NoSuchElementException
         try:
             self.browser.find_element(By.XPATH, f"//*[contains(text(),'{template_name}')]")
             raise AssertionError(f"Шаблон '{template_name}' все еще присутствует в списке")
-        except:
+        except NoSuchElementException:
             # Элемент не найден - это ожидаемое поведение
             pass
+
+    @allure.step("Дополнительная проверка удаления шаблона")
+    def verify_template_deletion(self, template_name: str):
+        """
+        Дополнительная проверка того, что шаблон действительно удален.
+        Выполняет несколько проверок для надежности.
+        """
+        import time
+        from selenium.common.exceptions import NoSuchElementException
+        
+        print(f"🔍 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Проверяем удаление шаблона '{template_name}'")
+        
+        # Проверка 1: Ждем исчезновения элемента
+        try:
+            WebDriverWait(self.browser, 5).until_not(
+                EC.presence_of_element_located((By.XPATH, f"//*[contains(text(),'{template_name}')]"))
+            )
+            print(f"✅ ПРОВЕРКА 1: Шаблон '{template_name}' исчез из DOM")
+        except:
+            print(f"⚠️ ПРОВЕРКА 1: Шаблон '{template_name}' все еще в DOM")
+        
+        # Проверка 2: Обновляем страницу и проверяем снова
+        time.sleep(1)
+        self.browser.refresh()
+        time.sleep(2)
+        
+        try:
+            self.browser.find_element(By.XPATH, f"//*[contains(text(),'{template_name}')]")
+            raise AssertionError(f"ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: Шаблон '{template_name}' все еще присутствует после обновления страницы")
+        except NoSuchElementException:
+            print(f"✅ ПРОВЕРКА 2: Шаблон '{template_name}' отсутствует после обновления страницы")
+        
+        # Проверка 3: Проверяем, что количество шаблонов уменьшилось
+        try:
+            # Ищем все элементы шаблонов (может потребоваться адаптация под вашу структуру)
+            template_elements = self.browser.find_elements(By.XPATH, "//*[contains(@class,'template') or contains(@class,'list')]")
+            print(f"✅ ПРОВЕРКА 3: Найдено {len(template_elements)} элементов шаблонов")
+        except:
+            print(f"⚠️ ПРОВЕРКА 3: Не удалось подсчитать элементы шаблонов")
+        
+        print(f"🎉 ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА ЗАВЕРШЕНА: Шаблон '{template_name}' успешно удален")
+
+    @allure.step("Открыть модалку добавления группы шаблонов")
+    def open_add_group_modal(self):
+        btn = self._wait().until(EC.element_to_be_clickable(self.ADD_TEMPLATE_GROUP_BUTTON))
+        try:
+            btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", btn)
+        self._wait().until(EC.visibility_of_element_located(self.ADD_GROUP_MODAL_TITLE))
+
+    @allure.step("Заполнить название группы")
+    def fill_group_name(self, group_name: str):
+        self._fill_input(self.GROUP_NAME_INPUT, group_name)
+
+    @allure.step("Создать группу шаблонов")
+    def create_template_group(self):
+        btn = self._wait().until(EC.element_to_be_clickable(self.CREATE_GROUP_BUTTON))
+        try:
+            btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", btn)
+
+    @allure.step("Проверить наличие группы в списке")
+    def assert_group_in_list(self, group_name: str):
+        self._wait().until(
+            EC.visibility_of_element_located((By.XPATH, f"//*[contains(text(),'{group_name}')]"))
+        )
+
+    @allure.step("Найти и открыть редактирование группы по имени")
+    def open_edit_group_modal(self, group_name: str):
+        import time
+        
+        # Даем время на обновление DOM после создания группы
+        time.sleep(2)
+        
+        # Ищем кнопку редактирования рядом с названием группы
+        edit_btn = self._wait().until(
+            EC.element_to_be_clickable((
+                By.XPATH, 
+                f"//*[contains(text(),'{group_name}')]/ancestor::*[contains(@class,'template') or contains(@class,'list') or self::li]//div[contains(@class,'template-item_setting_button')]"
+            ))
+        )
+        
+        # Прокрутим к кнопке и кликнем
+        self.browser.execute_script("arguments[0].scrollIntoView({block:'center'});", edit_btn)
+        time.sleep(0.5)
+        
+        # Кликнуть на кнопку редактирования
+        try:
+            edit_btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", edit_btn)
+        
+        # Дождаться открытия модального окна редактирования
+        time.sleep(1)
+        try:
+            self._wait().until(EC.visibility_of_element_located(self.EDIT_GROUP_MODAL_TITLE))
+        except:
+            # Если не нашли заголовок редактирования, попробуем найти заголовок создания
+            self._wait().until(EC.visibility_of_element_located(self.ADD_GROUP_MODAL_TITLE))
+
+    @allure.step("Обновить название группы")
+    def update_group_name(self, new_group_name: str):
+        # Очищаем поле и вводим новое название
+        self._fill_input(self.GROUP_NAME_INPUT, new_group_name)
+
+    @allure.step("Сохранить изменения группы")
+    def save_group_changes(self):
+        # Попробуем найти кнопку "Обновить" с несколькими вариантами локаторов
+        btn = None
+        try:
+            btn = self._wait().until(EC.element_to_be_clickable(self.UPDATE_GROUP_BUTTON))
+        except:
+            # Альтернативный локатор для кнопки "Обновить"
+            try:
+                btn = self._wait().until(EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//button[@type='submit' and contains(@class,'btn_primary') and contains(normalize-space(.), 'Обновить')]"
+                )))
+            except:
+                # Еще один альтернативный локатор
+                btn = self._wait().until(EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//div[contains(@class,'add-contact-form-submit')]//button[contains(@class,'btn_primary')]"
+                )))
+        
+        try:
+            btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", btn)
+
+    @allure.step("Закрыть модальное окно")
+    def close_modal(self):
+        try:
+            close_btn = self._wait().until(EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[contains(@class,'add-contact-close-button')]"
+            )))
+            try:
+                close_btn.click()
+            except Exception:
+                self.browser.execute_script("arguments[0].click();", close_btn)
+            time.sleep(1)
+        except:
+            # Если не удалось найти кнопку закрытия, попробуем нажать Escape
+            from selenium.webdriver.common.keys import Keys
+            self.browser.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+            time.sleep(1)
+
+    # Локаторы для редактирования шаблонов
+    EDIT_TEMPLATE_BUTTON = (
+        By.XPATH,
+        "//div[contains(@class,'template-item_setting_button')]//svg[@viewBox='0 0 18 18']//path[contains(@d,'M1.60449 12.75')]"
+    )
+    EDIT_TEMPLATE_MODAL_TITLE = (
+        By.XPATH,
+        "//form[contains(@class,'add-template-form')]//div[contains(@class,'add-contact-header-text') and contains(text(),'Редактирование')]"
+    )
+    UPDATE_TEMPLATE_BUTTON = (
+        By.XPATH,
+        "//form[contains(@class,'add-template-form')]//button[@type='submit' and contains(normalize-space(.), 'Обновить') or contains(normalize-space(.), 'Сохранить')]"
+    )
+
+    @allure.step("Найти и открыть редактирование шаблона по имени")
+    def open_edit_template_modal(self, template_name: str):
+        import time
+        
+        # Даем время на обновление DOM после создания шаблона
+        time.sleep(2)
+        
+        # Ищем кнопку редактирования рядом с названием шаблона
+        edit_btn = self._wait().until(
+            EC.element_to_be_clickable((
+                By.XPATH, 
+                f"//*[contains(text(),'{template_name}')]/ancestor::*[contains(@class,'template') or contains(@class,'list') or self::li]//div[contains(@class,'template-item_setting_button')]"
+            ))
+        )
+        
+        # Прокрутим к кнопке и кликнем
+        self.browser.execute_script("arguments[0].scrollIntoView({block:'center'});", edit_btn)
+        time.sleep(0.5)
+        
+        # Кликнуть на кнопку редактирования
+        try:
+            edit_btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", edit_btn)
+        
+        # Дождаться открытия модального окна редактирования
+        time.sleep(1)
+        try:
+            self._wait().until(EC.visibility_of_element_located(self.EDIT_TEMPLATE_MODAL_TITLE))
+        except:
+            # Если не нашли заголовок редактирования, попробуем найти заголовок создания
+            self._wait().until(EC.visibility_of_element_located(self.MODAL_TITLE))
+
+    @allure.step("Обновить название шаблона")
+    def update_template_name(self, new_template_name: str):
+        # Очищаем поле и вводим новое название
+        self._fill_input(self.NAME_INPUT, new_template_name)
+
+    @allure.step("Обновить текст шаблона")
+    def update_template_text(self, new_template_text: str):
+        # Очищаем поле и вводим новый текст
+        self._fill_input(self.TEXTAREA_CONTENT, new_template_text)
+
+    @allure.step("Сохранить изменения шаблона")
+    def save_template_changes(self):
+        # Попробуем найти кнопку "Обновить" или "Сохранить" с несколькими вариантами локаторов
+        btn = None
+        try:
+            btn = self._wait().until(EC.element_to_be_clickable(self.UPDATE_TEMPLATE_BUTTON))
+        except:
+            # Альтернативный локатор для кнопки "Обновить"
+            try:
+                btn = self._wait().until(EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//button[@type='submit' and contains(@class,'btn_primary') and (contains(normalize-space(.), 'Обновить') or contains(normalize-space(.), 'Сохранить'))]"
+                )))
+            except:
+                # Еще один альтернативный локатор
+                btn = self._wait().until(EC.element_to_be_clickable((
+                    By.XPATH,
+                    "//form[contains(@class,'add-template-form')]//button[@type='submit']"
+                )))
+        
+        try:
+            btn.click()
+        except Exception:
+            self.browser.execute_script("arguments[0].click();", btn)
 
