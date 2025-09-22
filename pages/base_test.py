@@ -6,11 +6,15 @@ from pages.login_manager_page import LoginManagerPage
 from pages.templates_page import TemplatesPage
 from pages.managers_page import ManagersPage
 from pages.profile.change_password_page import ChangePasswordPage
+
+from pages.contacts.contacts_page import ContactsPage
+
 from pages.tags_page import TagsPage
 from pages.status_page import StatusPage
 from pages.permissions_manager_page import PermissionsManagerPage
 from pages.dialogs.base_dialogs import BaseDialogsPage
 from pages.dialog_settings_page import DialogSettingsPage
+
 
 class BaseTest:
     base_page: BasePage
@@ -19,6 +23,7 @@ class BaseTest:
     templates_page: TemplatesPage
     managers_page: ManagersPage
     change_password_page: ChangePasswordPage
+    contacts_page: ContactsPage
     tags_page: TagsPage
     status_page: StatusPage
     permissions_manager_page: PermissionsManagerPage
@@ -34,6 +39,7 @@ class BaseTest:
         request.cls.templates_page = TemplatesPage(browser)
         request.cls.managers_page = ManagersPage(browser)
         request.cls.change_password_page = ChangePasswordPage(browser)
+        request.cls.contacts_page = ContactsPage(browser)
         request.cls.tags_page = TagsPage(browser)
         request.cls.status_page = StatusPage(browser)
         request.cls.permissions_manager_page = PermissionsManagerPage(browser)
