@@ -295,17 +295,8 @@ class ContactsPage(BasePage):
             self.element_in_clickable(self.ARCHIVE_CONTACT_BUTTON).click()
             sleep(1)
             # Подтверждаем архивацию
-            # self.element_in_clickable(self.BUTTON_OK2).click()
-            # self.element_in_clickable(self.CONFIRM_ARCHIVE_BUTTON).click()
+            self.browser.execute_script("document.querySelector(\"button[class='btn btn_primary btn_default btn_icon-none notification_button']\").click();")
             sleep(3)
-            # self.close_modal_window('cancel')
-            # sleep(1)
-                        # Закрываем через JavaScript
-            self.browser.execute_script("""
-                // Закрываем окно архивации
-document.querySelector("button[class='btn btn_primary btn_default btn_icon-none notification_button']").click()
-                });
-            """)
         
         return self
     

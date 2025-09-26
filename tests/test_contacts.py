@@ -319,7 +319,7 @@ class TestContacts(BaseTest):
             
             print(f"✅ Контакт '{contact_to_delete['name']}' успешно удален")
     
-    @pytest.mark.skip(reason="Архивация контакта - тесты еще не написаны")
+    # @pytest.mark.skip(reason="Архивация контакта - тесты еще не написаны")
     @allure.title("Архивация контакта")
     def test_archive_contact(self):
         """Тест архивации контакта"""
@@ -370,14 +370,6 @@ class TestContacts(BaseTest):
         with allure.step("Архивация контакта"):
             # Архивация контакта
             self.contacts_page.archive_contact(contact_to_archive['name'])
-            
-            # # Проверка успешной архивации
-            # assert self.contacts_page.is_success_message_displayed(), \
-            #     "Сообщение об успешной архивации не отображается"
-            
-            # success_message = self.contacts_page.get_success_message_text()
-            # assert "архивирован" in success_message.lower() or "архив" in success_message.lower(), \
-            #     f"Неожиданное сообщение об успехе: {success_message}"
             
             # Проверка, что контакт заархивирован (не отображается в основном списке)
             assert not self.contacts_page.is_contact_exists(contact_to_archive['name']), \
