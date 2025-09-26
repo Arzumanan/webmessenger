@@ -58,13 +58,15 @@ class ContactsPage(BasePage):
     
     # Действия с контактом
     EDIT_CONTACT_BUTTON = ("xpath", ".//button[contains(@class, 'edit-btn')]")
-    DELETE_CONTACT_BUTTON = ("xpath", ".//button[contains(@class, 'delete-btn')]")
-    ARCHIVE_CONTACT_BUTTON = ("xpath", ".//button[contains(@class, 'archive-btn')]")
+    DELETE_CONTACT_BUTTON = ("xpath", ".//button[contains(@class, 'info__btn_delete')]")
+    ARCHIVE_CONTACT_BUTTON = ("xpath", ".//button[contains(@class, 'info__btn_archive')]")
     SEND_MESSAGE_BUTTON = ("xpath", ".//button[contains(@class, 'send-message-btn')]")
     
     # Модальные окна
-    CONFIRM_DELETE_BUTTON = ("xpath", "//button[contains(text(), 'Удалить')]")
-    CONFIRM_ARCHIVE_BUTTON = ("xpath", "//button[contains(text(), 'Архивировать')]")
+    CONFIRM_DELETE_BUTTON = ("xpath", "//button[contains(text(), 'Ок')]")
+    CONFIRM_ARCHIVE_BUTTON = ("xpath", "//button[@class, 'btn btn_primary btn_default btn_icon-none notification_button']")
+    BUTTON_OK = ("xpath", "//button[@type, 'button']")
+    BUTTON_OK2 = ("xpath", "//div[@class, 'notification_button-block']")
     CANCEL_DELETE_BUTTON = ("xpath", "//button[contains(text(), 'Отмена')]")
     
     # Выгрузка файлов
@@ -162,6 +164,14 @@ class ContactsPage(BasePage):
         sleep(2)
         return self
     
+    @allure.step('Отмена создания контакта')
+    def cancel_create_contact(self):
+        """Отменить создание контакта"""
+        # Закрываем форму создания контакта
+        self.close_modal_window('auto')
+        sleep(1)
+        return self
+    
     @allure.step('Поиск контакта')
     def search_contact(self, search_term):
         """Поиск контакта по имени, логину или телефону"""
@@ -251,6 +261,18 @@ class ContactsPage(BasePage):
         
         return self
     
+    @allure.step('Отмена редактирования контакта')
+    def cancel_edit_contact(self, contact_name):
+        """Отменить редактирование контакта"""
+        contact_item = self.find_contact_by_name(contact_name)
+        if contact_item:
+            self.element_in_clickable(self.EDIT_CONTACT_BUTTON).click()
+            sleep(1)
+            # Закрываем форму редактирования
+            self.close_modal_window('auto')
+            sleep(1)
+        return self
+    
     @allure.step('Удаление контакта')
     def delete_contact(self, contact_name):
         """Удалить контакт"""
@@ -258,6 +280,7 @@ class ContactsPage(BasePage):
         if contact_item:
             self.element_in_clickable(self.DELETE_CONTACT_BUTTON).click()
             sleep(1)
+            # Подтверждаем удаление
             self.element_in_clickable(self.CONFIRM_DELETE_BUTTON).click()
             sleep(2)
         return self
@@ -267,10 +290,37 @@ class ContactsPage(BasePage):
         """Архивировать контакт"""
         contact_item = self.find_contact_by_name(contact_name)
         if contact_item:
+            self.element_in_clickable(self.CONTACT_NAME_INSTAGRAM).click()
+            sleep(1)
             self.element_in_clickable(self.ARCHIVE_CONTACT_BUTTON).click()
             sleep(1)
-            self.element_in_clickable(self.CONFIRM_ARCHIVE_BUTTON).click()
-            sleep(2)
+            # Подтверждаем архивацию
+            # self.element_in_clickable(self.BUTTON_OK2).click()
+            # self.element_in_clickable(self.CONFIRM_ARCHIVE_BUTTON).click()
+            sleep(3)
+            # self.close_modal_window('cancel')
+            # sleep(1)
+                        # Закрываем через JavaScript
+            self.browser.execute_script("""
+                // Закрываем окно архивации
+document.querySelector("button[class='btn btn_primary btn_default btn_icon-none notification_button']").click()
+                });
+            """)
+        
+        return self
+    
+    @allure.step('Отмена архивации контакта')
+    def cancel_archive_contact(self, contact_name):
+        """Отменить архивацию контакта"""
+        contact_item = self.find_contact_by_name(contact_name)
+        if contact_item:
+            self.element_in_clickable(self.CONTACT_NAME_INSTAGRAM).click()
+            sleep(1)
+            self.element_in_clickable(self.ARCHIVE_CONTACT_BUTTON).click()
+            sleep(1)
+            # Отменяем архивацию
+            self.close_modal_window('cancel')
+            sleep(1)
         return self
     
     @allure.step('Отправка сообщения контакту')
@@ -516,3 +566,140 @@ class ContactsPage(BasePage):
         self.open_excel_file(file_path)
         
         return file_path, df
+    
+    @allure.step('Закрытие модального окна')
+    def close_modal_window(self, method='close_button'):
+        """
+        Закрыть модальное окно различными способами
+        
+        Args:
+            method (str): Способ закрытия модального окна
+                - 'close_button': Клик по кнопке закрытия (X)
+                - 'escape': Нажатие клавиши Escape
+                - 'overlay': Клик по фону модального окна
+                - 'cancel': Клик по кнопке "Отмена" или "Cancel"
+                - 'auto': Автоматический поиск любого способа закрытия
+        """
+        try:
+            if method == 'close_button':
+                # Ищем кнопку закрытия (X)
+                close_buttons = [
+                    self.MODAL_CLOSE_BUTTON,
+                    ("xpath", "//button[@aria-label='Close']"),
+                    ("xpath", "//button[contains(@class, 'close')]"),
+                    ("xpath", "//span[contains(@class, 'close')]"),
+                    ("xpath", "//i[contains(@class, 'close')]"),
+                    ("xpath", "//button[contains(text(), '×')]"),
+                    ("xpath", "//button[contains(text(), '✕')]")
+                ]
+                
+                for button_locator in close_buttons:
+                    try:
+                        close_button = self.element_in_clickable(button_locator, timeout=3)
+                        close_button.click()
+                        print(f"✅ Модальное окно закрыто кнопкой: {button_locator[1]}")
+                        sleep(1)
+                        return True
+                    except:
+                        continue
+                        
+            elif method == 'escape':
+                # Нажимаем клавишу Escape
+                from selenium.webdriver.common.keys import Keys
+                self.browser.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                print("✅ Модальное окно закрыто клавишей Escape")
+                sleep(1)
+                return True
+                
+            elif method == 'overlay':
+                # Кликаем по фону модального окна
+                try:
+                    overlay = self.element_in_clickable(self.MODAL_OVERLAY, timeout=3)
+                    overlay.click()
+                    print("✅ Модальное окно закрыто кликом по фону")
+                    sleep(1)
+                    return True
+                except:
+                    # Альтернативный способ - клик по координатам
+                    self.browser.execute_script("document.querySelector('.modal-backdrop').click();")
+                    print("✅ Модальное окно закрыто кликом по фону (JavaScript)")
+                    sleep(1)
+                    return True
+                    
+            elif method == 'cancel':
+                # Ищем кнопку "Отмена" или "Cancel"
+                cancel_buttons = [
+                    self.CANCEL_DELETE_BUTTON,
+                    ("xpath", "//button[contains(text(), 'Отмена')]"),
+                    ("xpath", "//button[contains(text(), 'Cancel')]"),
+                    ("xpath", "//button[contains(text(), 'Нет')]"),
+                    ("xpath", "//button[contains(text(), 'No')]")
+                ]
+                
+                for button_locator in cancel_buttons:
+                    try:
+                        cancel_button = self.element_in_clickable(button_locator, timeout=3)
+                        cancel_button.click()
+                        print(f"✅ Модальное окно закрыто кнопкой отмены: {button_locator[1]}")
+                        sleep(1)
+                        return True
+                    except:
+                        continue
+                        
+            elif method == 'auto':
+                # Автоматический поиск любого способа закрытия
+                methods_to_try = ['close_button', 'escape', 'overlay', 'cancel']
+                for method_name in methods_to_try:
+                    if self.close_modal_window(method_name):
+                        return True
+                        
+        except Exception as e:
+            print(f"❌ Ошибка при закрытии модального окна методом '{method}': {e}")
+            
+        return False
+    
+    @allure.step('Проверка наличия модального окна')
+    def is_modal_window_open(self):
+        """Проверить, открыто ли модальное окно"""
+        try:
+            # Проверяем наличие модального контейнера
+            modal_container = self.element_in_visible(self.MODAL_CONTAINER, timeout=2)
+            return modal_container.is_displayed()
+        except:
+            try:
+                # Альтернативная проверка через JavaScript
+                is_modal_open = self.browser.execute_script("""
+                    return document.querySelector('.modal') !== null || 
+                           document.querySelector('.popup') !== null ||
+                           document.querySelector('[role="dialog"]') !== null;
+                """)
+                return is_modal_open
+            except:
+                return False
+    
+    @allure.step('Принудительное закрытие всех модальных окон')
+    def force_close_all_modals(self):
+        """Принудительно закрыть все модальные окна"""
+        try:
+            # Закрываем через JavaScript
+            self.browser.execute_script("""
+                // Закрываем все модальные окна
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                });
+                
+                // Удаляем backdrop
+                document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                    backdrop.remove();
+                });
+                
+                // Удаляем класс modal-open с body
+                document.body.classList.remove('modal-open');
+            """)
+            print("✅ Все модальные окна принудительно закрыты через JavaScript")
+            sleep(1)
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка при принудительном закрытии модальных окон: {e}")
+            return False
